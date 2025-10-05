@@ -1,11 +1,11 @@
 [project]
 name = "prseq"
-version = "0.0.1"
+version = "0.0.2"
 description = "Python tools (backed by Rust) for sequence analysis"
 authors = [
     {name = "Terry C. Jones", email = "terence.jones@charite.de"}
 ]
-readme = "../README.md"
+readme = "README.md"
 requires-python = ">=3.8"
 classifiers = [
     "Programming Language :: Rust",

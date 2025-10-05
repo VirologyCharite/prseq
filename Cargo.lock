@@ -104,14 +104,14 @@ dependencies = [
 
 [[package]]
 name = "prseq"
-version = "0.0.1"
+version = "0.0.2"
 dependencies = [
  "tempfile",
 ]
 
 [[package]]
 name = "prseq_py"
-version = "0.0.1"
+version = "0.0.2"
 dependencies = [
  "prseq",
  "pyo3",
