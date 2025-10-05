@@ -1,2 +1,4 @@
 target
 *~
+python/src/prseq/*.so
+python/.venv

@@ -1,3 +1,7 @@
 test:
-	cd rust && cargo test
-	cd python && uv run pytest
+	make -C rust $@
+	make -C python $@
+
+clean:
+	make -C rust $@
+	make -C python $@
