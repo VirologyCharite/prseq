@@ -2,6 +2,11 @@
 
 Python tools (backed by Rust) for sequence analysis.
 
+## Notes
+
+* This is highly experimental and should not be used yet!
+* Almost all the code (and tests) was written by claude.ai
+
 ## Building
 
 ### Rust Library
