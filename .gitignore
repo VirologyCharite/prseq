@@ -2,3 +2,4 @@ target
 *~
 python/src/prseq/*.so
 python/.venv
+__pycache__
