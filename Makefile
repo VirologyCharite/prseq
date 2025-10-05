@@ -5,3 +5,6 @@ test:
 clean:
 	make -C rust $@
 	make -C python $@
+
+bumpversion:
+	uv run bump2version patch
