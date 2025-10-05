@@ -1,0 +1,12 @@
+[package]
+name = "prseq_py"
+version = "0.0.1"
+edition = "2021"
+
+[lib]
+name = "prseq"
+crate-type = ["cdylib"]
+
+[dependencies]
+pyo3 = { version = "0.22", features = ["extension-module"] }
+prseq = { path = "../rust" }

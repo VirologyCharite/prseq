@@ -1,0 +1,48 @@
+[project]
+name = "prseq"
+version = "0.0.1"
+description = "Python tools (backed by Rust) for sequence analysis"
+authors = [
+    {name = "Terry C. Jones", email = "terence.jones@charite.de"}
+]
+readme = "../README.md"
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Rust",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "License :: OSI Approved :: MIT License",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+]
+keywords = ["bioinformatics", "fasta", "rust", "sequence analysis"]
+
+[project.urls]
+Homepage = "https://github.com/virologieCharite/prseq"
+Repository = "https://github.com/virologieCharite/prseq"
+
+[project.scripts]
+fasta-info = "prseq.cli:info"
+fasta-stats = "prseq.cli:stats"
+fasta-filter = "prseq.cli:filter_cmd"
+
+[build-system]
+requires = ["maturin>=1.0,<2.0"]
+build-backend = "maturin"
+
+[tool.maturin]
+features = ["pyo3/extension-module"]
+python-source = "src"
+module-name = "prseq.prseq"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.mypy]
+python_version = "3.8"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true

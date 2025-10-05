@@ -1,0 +1,19 @@
+[package]
+name = "prseq"
+version = "0.0.1"
+edition = "2021"
+authors = ["Terry C. Jones <terence.jones@charite.de>"]
+license = "MIT OR Apache-2.0"
+description = "Rust tools for sequence analysis"
+repository = "https://github.com/virologyCharite/prseq"
+keywords = ["bioinformatics", "fasta", "rust", "sequence analysis"]
+categories = ["bioinformatics", "sequence analysis"]
+
+[lib]
+name = "prseq"
+path = "src/lib.rs"
+
+[dependencies]
+
+[dev-dependencies]
+tempfile = "3"
