@@ -1,7 +1,7 @@
 from typing import Iterator, NamedTuple
 from .prseq import FastaRecord as _FastaRecord, FastaReader as _FastaReader
 
-__version__ = "0.0.3"
+__version__ = "0.0.4"
 __all__ = ["FastaRecord", "FastaReader", "read_fasta"]
 
 
