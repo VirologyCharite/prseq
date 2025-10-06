@@ -1,4 +1,4 @@
-use prseq::{FastaReader, FastaRecord, read_fasta, ZeroCopyFastaReader, StreamingZeroCopyFastaReader};
+use prseq::{FastaReader, FastaRecord, read_fasta, ZeroCopyFastaReader, StreamingFastaReader};
 use std::io::Write;
 use tempfile::NamedTempFile;
 
@@ -120,67 +120,60 @@ fn test_zero_copy_empty_lines() {
 }
 
 #[test]
-fn test_streaming_zero_copy_fasta_reader() {
+fn test_streaming_fasta_reader() {
     let file = create_test_fasta();
-    let mut reader = StreamingZeroCopyFastaReader::from_file(file.path(), 1024).unwrap();
+    let mut reader = StreamingFastaReader::from_file(file.path(), 10).unwrap(); // Hint for 10 lines
 
     let mut records = Vec::new();
     while let Some(result) = reader.next_record() {
-        let (header, sequence, total_len) = result.unwrap();
-        // Copy the data since it's only valid until next call
-        records.push((header.to_vec(), sequence.to_vec(), total_len));
+        let (header, sequence_lines, valid_count, total_len) = result.unwrap();
+        // Copy the data for testing
+        let valid_lines: Vec<String> = sequence_lines[..valid_count].to_vec();
+        records.push((header, valid_lines, valid_count, total_len));
     }
 
     assert_eq!(records.len(), 2);
 
     // Test first record
-    assert_eq!(records[0].0, b"seq1 description one");
-    assert_eq!(records[0].1, b"ATCGATCGGCTAGCTA"); // Concatenated sequence
-    assert_eq!(records[0].2, 16);
+    assert_eq!(records[0].0, "seq1 description one");
+    assert_eq!(records[0].1, vec!["ATCGATCG", "GCTAGCTA"]);
+    assert_eq!(records[0].2, 2); // valid count
+    assert_eq!(records[0].3, 16); // total length
 
     // Test second record
-    assert_eq!(records[1].0, b"seq2 description two");
-    assert_eq!(records[1].1, b"GGGGCCCC");
-    assert_eq!(records[1].2, 8);
+    assert_eq!(records[1].0, "seq2 description two");
+    assert_eq!(records[1].1, vec!["GGGGCCCC"]);
+    assert_eq!(records[1].2, 1); // valid count
+    assert_eq!(records[1].3, 8); // total length
 }
 
 #[test]
-fn test_streaming_zero_copy_small_buffer() {
+fn test_streaming_fasta_reader_memory_reuse() {
     let file = create_test_fasta();
-    let mut reader = StreamingZeroCopyFastaReader::from_file(file.path(), 32).unwrap(); // Very small buffer
+    let mut reader = StreamingFastaReader::from_file(file.path(), 2).unwrap(); // Small initial capacity
 
-    let mut count = 0;
-    while let Some(result) = reader.next_record() {
-        let (header, sequence, total_len) = result.unwrap();
-        count += 1;
+    // First record: 2 lines
+    let (_, _, valid_count1, _) = reader.next_record().unwrap().unwrap();
+    assert_eq!(valid_count1, 2);
 
-        if count == 1 {
-            assert_eq!(header, b"seq1 description one");
-            assert_eq!(sequence, b"ATCGATCGGCTAGCTA");
-            assert_eq!(total_len, 16);
-        } else if count == 2 {
-            assert_eq!(header, b"seq2 description two");
-            assert_eq!(sequence, b"GGGGCCCC");
-            assert_eq!(total_len, 8);
-        }
-    }
+    // Second record: 1 line, should reuse memory efficiently
+    let (_, _, valid_count2, _) = reader.next_record().unwrap().unwrap();
+    assert_eq!(valid_count2, 1);
 
-    assert_eq!(count, 2);
+    // Test that we can still read successfully (memory reuse working)
+    assert!(valid_count2 < valid_count1); // Smaller record after larger one
 }
 
 #[test]
-fn test_streaming_zero_copy_iterator() {
+fn test_streaming_fasta_reader_iterator() {
     let file = create_test_fasta();
-    let reader = StreamingZeroCopyFastaReader::from_file(file.path(), 1024).unwrap();
+    let reader = StreamingFastaReader::from_file(file.path(), 10).unwrap();
 
-    let mut records = Vec::new();
-    for result in reader {
-        let (header, sequence, total_len) = result.unwrap();
-        // Copy the data since it's only valid until next iteration
-        records.push((header.to_vec(), sequence.to_vec(), total_len));
-    }
+    let records: Vec<_> = reader.map(|r| r.unwrap()).collect();
 
     assert_eq!(records.len(), 2);
-    assert_eq!(records[0].0, b"seq1 description one");
-    assert_eq!(records[1].0, b"seq2 description two");
+    assert_eq!(records[0].0, "seq1 description one");
+    assert_eq!(records[0].2, 2); // valid count
+    assert_eq!(records[1].0, "seq2 description two");
+    assert_eq!(records[1].2, 1); // valid count
 }

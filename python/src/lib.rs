@@ -3,7 +3,7 @@ use pyo3::exceptions::PyIOError;
 use pyo3::types::{PyBytes, PyList};
 
 extern crate prseq as rust_prseq;
-use rust_prseq::StreamingZeroCopyFastaReader as RustStreamingZeroCopyFastaReader;
+use rust_prseq::StreamingFastaReader as RustStreamingFastaReader;
 
 #[pyclass]
 struct FastaRecord {
@@ -148,32 +148,39 @@ fn read_fasta_zero_copy(path: String, sequence_hint: usize) -> PyResult<Vec<(PyO
 }
 
 #[pyclass]
-struct StreamingZeroCopyFastaReader {
-    reader: RustStreamingZeroCopyFastaReader,
+struct StreamingFastaReader {
+    reader: RustStreamingFastaReader,
 }
 
 #[pymethods]
-impl StreamingZeroCopyFastaReader {
+impl StreamingFastaReader {
     #[new]
-    #[pyo3(signature = (path, buffer_size = 65536))]
-    fn new(path: String, buffer_size: usize) -> PyResult<Self> {
-        let reader = RustStreamingZeroCopyFastaReader::from_file(&path, buffer_size)
+    #[pyo3(signature = (path, sequence_size_hint = 100))]
+    fn new(path: String, sequence_size_hint: usize) -> PyResult<Self> {
+        let reader = RustStreamingFastaReader::from_file(&path, sequence_size_hint)
             .map_err(|e| PyIOError::new_err(e.to_string()))?;
-        Ok(StreamingZeroCopyFastaReader { reader })
+        Ok(StreamingFastaReader { reader })
     }
 
     fn __iter__(slf: PyRef<'_, Self>) -> PyRef<'_, Self> {
         slf
     }
 
-    fn __next__(mut slf: PyRefMut<'_, Self>) -> PyResult<Option<(PyObject, PyObject, usize)>> {
+    fn __next__(mut slf: PyRefMut<'_, Self>) -> PyResult<Option<(PyObject, PyObject, usize, usize)>> {
         let py = slf.py();
-        match slf.reader.next_record() {
-            Some(Ok((header, sequence, total_length))) => {
-                // Convert to Python bytes objects
-                let header_bytes = PyBytes::new_bound(py, &header).into();
-                let sequence_bytes = PyBytes::new_bound(py, &sequence).into();
-                Ok(Some((header_bytes, sequence_bytes, total_length)))
+        match slf.reader.next() {
+            Some(Ok((header, sequence_lines, valid_count, total_length))) => {
+                // Convert header to string
+                let header_str = header.into_py(py);
+
+                // Convert sequence lines to Python list of strings
+                let sequence_list: Vec<PyObject> = sequence_lines
+                    .iter()
+                    .map(|line| line.clone().into_py(py))
+                    .collect();
+                let sequence_py_list = PyList::new_bound(py, sequence_list).into();
+
+                Ok(Some((header_str, sequence_py_list, valid_count, total_length)))
             }
             Some(Err(e)) => Err(PyIOError::new_err(e.to_string())),
             None => Ok(None),
@@ -187,7 +194,7 @@ fn prseq(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<FastaRecord>()?;
     m.add_class::<FastaReader>()?;
     m.add_class::<ZeroCopyFastaReader>()?;
-    m.add_class::<StreamingZeroCopyFastaReader>()?;
+    m.add_class::<StreamingFastaReader>()?;
     m.add_function(wrap_pyfunction!(read_fasta_zero_copy, m)?)?;
     Ok(())
 }

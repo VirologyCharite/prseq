@@ -1,8 +1,8 @@
 from typing import Iterator, NamedTuple, Generator, Tuple, List
-from .prseq import FastaRecord as _FastaRecord, FastaReader as _FastaReader, ZeroCopyFastaReader as _ZeroCopyFastaReader, StreamingZeroCopyFastaReader as _StreamingZeroCopyFastaReader, read_fasta_zero_copy as _read_fasta_zero_copy
+from .prseq import FastaRecord as _FastaRecord, FastaReader as _FastaReader, ZeroCopyFastaReader as _ZeroCopyFastaReader, StreamingFastaReader as _StreamingFastaReader, read_fasta_zero_copy as _read_fasta_zero_copy
 
 __version__ = "0.0.4"
-__all__ = ["FastaRecord", "FastaReader", "read_fasta", "ZeroCopyFastaReader", "read_fasta_zero_copy", "StreamingZeroCopyFastaReader"]
+__all__ = ["FastaRecord", "FastaReader", "read_fasta", "ZeroCopyFastaReader", "read_fasta_zero_copy", "StreamingFastaReader"]
 
 
 class FastaRecord(NamedTuple):
@@ -157,49 +157,49 @@ def read_fasta_zero_copy(path: str, sequence_hint: int = 8192) -> List[Tuple[byt
     return _read_fasta_zero_copy(path, sequence_hint)
 
 
-class StreamingZeroCopyFastaReader:
-    """Memory-efficient streaming zero-copy FASTA reader for very large files (TB+).
+class StreamingFastaReader:
+    """Memory-efficient streaming FASTA reader for very large files (TB+).
 
-    This reader uses a fixed-size buffer and reuses memory for each record. It does NOT
-    load the entire file into memory, making it suitable for files larger than available RAM.
-
-    The returned bytes objects are independent copies, so they remain valid after the next
-    iteration, but the reader reuses internal buffers for maximum memory efficiency.
+    This reader reuses memory buffers between records and does NOT load the entire file
+    into memory, making it suitable for files larger than available RAM. It should
+    perform nearly identically to the regular FastaReader while using constant memory.
 
     Example:
-        >>> reader = StreamingZeroCopyFastaReader("huge_file.fasta", buffer_size=1024*1024)
-        >>> for header_bytes, sequence_bytes, total_length in reader:
-        ...     header = header_bytes.decode('utf-8')
-        ...     sequence = sequence_bytes.decode('utf-8')  # Concatenated sequence
+        >>> reader = StreamingFastaReader("huge_file.fasta", sequence_size_hint=500)
+        >>> for header, sequence_lines, valid_count, total_length in reader:
+        ...     # Only first 'valid_count' items in sequence_lines are valid
+        ...     valid_lines = sequence_lines[:valid_count]
+        ...     concatenated = ''.join(valid_lines)
         ...     print(f"{header}: {total_length} bp")
     """
 
-    def __init__(self, path: str, buffer_size: int = 65536) -> None:
-        """Create a new streaming zero-copy FASTA reader.
+    def __init__(self, path: str, sequence_size_hint: int = 100) -> None:
+        """Create a new streaming FASTA reader.
 
         Args:
             path: Path to the FASTA file
-            buffer_size: Size of internal buffer in bytes (default 64KB).
-                       Larger buffers may improve performance for files with very long sequences.
+            sequence_size_hint: Expected number of sequence lines per record.
+                              Used for optimal memory pre-allocation (default 100 lines).
 
         Raises:
             FileNotFoundError: If the file doesn't exist
             IOError: If there's an error reading the file
         """
-        self._reader = _StreamingZeroCopyFastaReader(path, buffer_size)
+        self._reader = _StreamingFastaReader(path, sequence_size_hint)
 
-    def __iter__(self) -> Generator[Tuple[bytes, bytes, int], None, None]:
-        """Iterate over FASTA records as (header_bytes, sequence_bytes, total_length).
+    def __iter__(self) -> Generator[Tuple[str, List[str], int, int], None, None]:
+        """Iterate over FASTA records as (header, sequence_lines, valid_count, total_length).
 
         Yields:
-            Tuple of (header_bytes, sequence_bytes, total_length) where:
-            - header_bytes: bytes object of the header (without '>')
-            - sequence_bytes: bytes object of the complete concatenated sequence
-            - total_length: int total sequence length
+            Tuple of (header, sequence_lines, valid_count, total_length) where:
+            - header: str of the header (without '>')
+            - sequence_lines: List[str] of sequence lines (reused buffer)
+            - valid_count: int number of valid entries in sequence_lines for this record
+            - total_length: int total sequence length (sum of all valid lines)
         """
         return self
 
-    def __next__(self) -> Tuple[bytes, bytes, int]:
-        """Get the next FASTA record as bytes objects with total length."""
+    def __next__(self) -> Tuple[str, List[str], int, int]:
+        """Get the next FASTA record with memory reuse."""
         result = next(self._reader)
         return result
