@@ -103,3 +103,115 @@ pub fn read_fasta<P: AsRef<Path>>(path: P) -> Result<Vec<FastaRecord>> {
     reader.collect()
 }
 
+/// Zero-copy FASTA reader that yields byte slices directly from memory buffer
+pub struct ZeroCopyFastaReader {
+    buffer: Vec<u8>,
+    position: usize,
+    sequence_hint: usize,
+}
+
+impl ZeroCopyFastaReader {
+    /// Create a new zero-copy FASTA reader
+    pub fn from_file<P: AsRef<Path>>(path: P, sequence_hint: usize) -> Result<Self> {
+        let mut file = std::fs::File::open(path)?;
+        let mut buffer = Vec::new();
+        std::io::Read::read_to_end(&mut file, &mut buffer)?;
+
+        Ok(ZeroCopyFastaReader {
+            buffer,
+            position: 0,
+            sequence_hint: sequence_hint.max(1024),
+        })
+    }
+
+    /// Skip whitespace characters
+    fn skip_whitespace(&mut self) {
+        while self.position < self.buffer.len() {
+            match self.buffer[self.position] {
+                b' ' | b'\t' | b'\r' | b'\n' => self.position += 1,
+                _ => break,
+            }
+        }
+    }
+
+
+    /// Read next FASTA record as owned byte vectors (zero-copy within each record)
+    pub fn next_record(&mut self) -> Option<std::io::Result<(Vec<u8>, Vec<Vec<u8>>)>> {
+        self.skip_whitespace();
+
+        if self.position >= self.buffer.len() {
+            return None;
+        }
+
+        // Find header line start
+        let header_start = self.position;
+        if self.buffer[header_start] != b'>' {
+            return Some(Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                "FASTA record must start with '>'",
+            )));
+        }
+
+        // Find header line end
+        let mut pos = header_start + 1; // Skip '>'
+        while pos < self.buffer.len() && self.buffer[pos] != b'\n' {
+            pos += 1;
+        }
+
+        let mut header_end = pos;
+        if header_end > header_start + 1 && self.buffer[header_end - 1] == b'\r' {
+            header_end -= 1;
+        }
+
+        let header = self.buffer[header_start + 1..header_end].to_vec();
+
+        // Skip newline
+        if pos < self.buffer.len() {
+            pos += 1;
+        }
+
+        // Read sequence lines
+        let mut sequence_lines = Vec::with_capacity(self.sequence_hint / 80);
+
+        while pos < self.buffer.len() {
+            // Check if we've hit the next record
+            if self.buffer[pos] == b'>' {
+                break;
+            }
+
+            // Find line end
+            let line_start = pos;
+            while pos < self.buffer.len() && self.buffer[pos] != b'\n' {
+                pos += 1;
+            }
+
+            let mut line_end = pos;
+            if line_end > line_start && self.buffer[line_end - 1] == b'\r' {
+                line_end -= 1;
+            }
+
+            // Skip empty lines
+            if line_end > line_start {
+                let line = self.buffer[line_start..line_end].to_vec();
+                sequence_lines.push(line);
+            }
+
+            // Skip newline
+            if pos < self.buffer.len() {
+                pos += 1;
+            }
+        }
+
+        self.position = pos;
+        Some(Ok((header, sequence_lines)))
+    }
+}
+
+impl Iterator for ZeroCopyFastaReader {
+    type Item = std::io::Result<(Vec<u8>, Vec<Vec<u8>>)>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.next_record()
+    }
+}
+

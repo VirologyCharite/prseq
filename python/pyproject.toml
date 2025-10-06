@@ -27,6 +27,7 @@ Repository = "https://github.com/virologieCharite/prseq"
 [project.scripts]
 fasta-info = "prseq.cli:info"
 fasta-stats = "prseq.cli:stats"
+fasta-stats-zero-copy = "prseq.cli:stats_zero_copy"
 fasta-filter = "prseq.cli:filter_cmd"
 
 [build-system]

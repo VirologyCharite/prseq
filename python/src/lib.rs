@@ -1,5 +1,6 @@
 use pyo3::prelude::*;
 use pyo3::exceptions::PyIOError;
+use pyo3::types::{PyBytes, PyList};
 
 extern crate prseq as rust_prseq;
 
@@ -76,10 +77,81 @@ impl FastaReader {
     }
 }
 
+#[pyclass]
+struct ZeroCopyFastaReader {
+    reader: rust_prseq::ZeroCopyFastaReader,
+}
+
+#[pymethods]
+impl ZeroCopyFastaReader {
+    #[new]
+    #[pyo3(signature = (path, sequence_hint = 8192))]
+    fn new(path: String, sequence_hint: usize) -> PyResult<Self> {
+        let reader = rust_prseq::ZeroCopyFastaReader::from_file(&path, sequence_hint)
+            .map_err(|e| PyIOError::new_err(e.to_string()))?;
+        Ok(ZeroCopyFastaReader { reader })
+    }
+
+    fn __iter__(slf: PyRef<'_, Self>) -> PyRef<'_, Self> {
+        slf
+    }
+
+    fn __next__(mut slf: PyRefMut<'_, Self>) -> PyResult<Option<(PyObject, PyObject)>> {
+        let py = slf.py();
+        match slf.reader.next_record() {
+            Some(Ok((header, sequence_lines))) => {
+                // Convert header to Python bytes
+                let header_bytes = PyBytes::new_bound(py, &header).into();
+
+                // Convert sequence lines to Python list of bytes
+                let sequence_bytes_list: Vec<PyObject> = sequence_lines
+                    .iter()
+                    .map(|line| PyBytes::new_bound(py, line).into())
+                    .collect();
+                let sequence_list = PyList::new_bound(py, sequence_bytes_list).into();
+
+                Ok(Some((header_bytes, sequence_list)))
+            }
+            Some(Err(e)) => Err(PyIOError::new_err(e.to_string())),
+            None => Ok(None),
+        }
+    }
+}
+
+#[pyfunction]
+#[pyo3(signature = (path, sequence_hint = 8192))]
+fn read_fasta_zero_copy(path: String, sequence_hint: usize) -> PyResult<Vec<(PyObject, PyObject)>> {
+    Python::with_gil(|py| {
+        let mut reader = rust_prseq::ZeroCopyFastaReader::from_file(&path, sequence_hint)
+            .map_err(|e| PyIOError::new_err(e.to_string()))?;
+
+        let mut results = Vec::new();
+
+        while let Some(record) = reader.next_record() {
+            match record {
+                Ok((header, sequence_lines)) => {
+                    let header_bytes = PyBytes::new_bound(py, &header).into();
+                    let sequence_bytes_list: Vec<PyObject> = sequence_lines
+                        .iter()
+                        .map(|line| PyBytes::new_bound(py, line).into())
+                        .collect();
+                    let sequence_list = PyList::new_bound(py, sequence_bytes_list).into();
+                    results.push((header_bytes, sequence_list));
+                }
+                Err(e) => return Err(PyIOError::new_err(e.to_string())),
+            }
+        }
+
+        Ok(results)
+    })
+}
+
 
 #[pymodule]
 fn prseq(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<FastaRecord>()?;
     m.add_class::<FastaReader>()?;
+    m.add_class::<ZeroCopyFastaReader>()?;
+    m.add_function(wrap_pyfunction!(read_fasta_zero_copy, m)?)?;
     Ok(())
 }

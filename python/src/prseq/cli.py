@@ -1,11 +1,9 @@
-"""Command-line interface for FASTA parser."""
-
 import argparse
 import sys
 from pathlib import Path
 from typing import Optional
 
-from prseq import FastaReader, read_fasta
+from prseq import FastaReader, read_fasta, ZeroCopyFastaReader
 
 
 def info() -> None:
@@ -73,6 +71,61 @@ def stats() -> None:
         for record in reader:
             total_seqs += 1
             seq_len = len(record.sequence)
+            total_length += seq_len
+
+            if min_length is None or seq_len < min_length:
+                min_length = seq_len
+            if max_length is None or seq_len > max_length:
+                max_length = seq_len
+
+        if total_seqs == 0:
+            print("No sequences found in file")
+            return
+
+        avg_length = total_length / total_seqs
+
+        print(f"Statistics for: {args.file}")
+        print(f"  Total sequences: {total_seqs}")
+        print(f"  Total length: {total_length:,} bp")
+        print(f"  Average length: {avg_length:.1f} bp")
+        print(f"  Min length: {min_length:,} bp")
+        print(f"  Max length: {max_length:,} bp")
+
+    except Exception as e:
+        print(f"Error processing FASTA file: {e}", file=sys.stderr)
+        sys.exit(1)
+
+
+def stats_zero_copy() -> None:
+    """Calculate statistics for sequences in a FASTA file using the zero-copy reader."""
+    parser = argparse.ArgumentParser(
+        prog='fasta-stats',
+        description='Calculate statistics for sequences in a FASTA file'
+    )
+    parser.add_argument('file', help='FASTA file to analyze')
+    parser.add_argument(
+        '--size-hint',
+        type=int,
+        help='Expected sequence length hint for optimization (uses internal default if not specified)'
+    )
+
+    args = parser.parse_args()
+
+    if not Path(args.file).exists():
+        print(f"Error: File not found: {args.file}", file=sys.stderr)
+        sys.exit(1)
+
+    try:
+        reader = ZeroCopyFastaReader(args.file, sequence_hint=args.size_hint)
+
+        total_seqs = 0
+        total_length = 0
+        min_length: Optional[int] = None
+        max_length: Optional[int] = None
+
+        for _, sequences in reader:
+            total_seqs += 1
+            seq_len = sum(len(sequence) for sequence in sequences)
             total_length += seq_len
 
             if min_length is None or seq_len < min_length:

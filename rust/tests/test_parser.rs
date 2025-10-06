@@ -1,4 +1,4 @@
-use prseq::{FastaReader, FastaRecord, read_fasta};
+use prseq::{FastaReader, FastaRecord, read_fasta, ZeroCopyFastaReader};
 use std::io::Write;
 use tempfile::NamedTempFile;
 
@@ -44,4 +44,71 @@ fn test_invalid_fasta() {
     let result: Result<Vec<_>, _> = reader.collect();
     
     assert!(result.is_err());
+}
+
+#[test]
+fn test_zero_copy_fasta_reader() {
+    let file = create_test_fasta();
+    let mut reader = ZeroCopyFastaReader::from_file(file.path(), 1024).unwrap();
+
+    let mut records = Vec::new();
+    while let Some(result) = reader.next_record() {
+        records.push(result.unwrap());
+    }
+
+    assert_eq!(records.len(), 2);
+
+    // Test first record
+    let (header1, seq_lines1) = &records[0];
+    assert_eq!(header1, b"seq1 description one");
+    assert_eq!(seq_lines1.len(), 2);
+    assert_eq!(seq_lines1[0], b"ATCGATCG");
+    assert_eq!(seq_lines1[1], b"GCTAGCTA");
+
+    // Test second record
+    let (header2, seq_lines2) = &records[1];
+    assert_eq!(header2, b"seq2 description two");
+    assert_eq!(seq_lines2.len(), 1);
+    assert_eq!(seq_lines2[0], b"GGGGCCCC");
+}
+
+#[test]
+fn test_zero_copy_iterator_interface() {
+    let file = create_test_fasta();
+    let reader = ZeroCopyFastaReader::from_file(file.path(), 1024).unwrap();
+
+    let records: Vec<_> = reader.map(|r| r.unwrap()).collect();
+
+    assert_eq!(records.len(), 2);
+    assert_eq!(records[0].0, b"seq1 description one");
+    assert_eq!(records[1].0, b"seq2 description two");
+}
+
+#[test]
+fn test_zero_copy_large_sequence_hint() {
+    let file = create_test_fasta();
+    let mut reader = ZeroCopyFastaReader::from_file(file.path(), 50000).unwrap();
+
+    // Should still work with large sequence hint
+    let record = reader.next_record().unwrap().unwrap();
+    assert_eq!(record.0, b"seq1 description one");
+}
+
+#[test]
+fn test_zero_copy_empty_lines() {
+    let mut file = NamedTempFile::new().unwrap();
+    writeln!(file, ">test header").unwrap();
+    writeln!(file, "").unwrap(); // Empty line
+    writeln!(file, "ATCGATCG").unwrap();
+    writeln!(file, "").unwrap(); // Another empty line
+    writeln!(file, "GCTAGCTA").unwrap();
+
+    let mut reader = ZeroCopyFastaReader::from_file(file.path(), 1024).unwrap();
+    let (header, seq_lines) = reader.next_record().unwrap().unwrap();
+
+    assert_eq!(header, b"test header");
+    // Empty lines should be skipped
+    assert_eq!(seq_lines.len(), 2);
+    assert_eq!(seq_lines[0], b"ATCGATCG");
+    assert_eq!(seq_lines[1], b"GCTAGCTA");
 }
