@@ -149,17 +149,18 @@ int main(int argc, char *argv[]) {
     }
 
     int record_count = 0;
-    size_t total_seq_length = 0;
+    // size_t total_seq_length = 0;
     int result;
 
     while ((result = fasta_read_next(fp, reader)) > 0) {
         record_count++;
-        total_seq_length += strlen(reader->sequence);
+        // total_seq_length += strlen(reader->sequence);
 
-        // Print progress every 50k records
+        /* Print progress every 50k records
         if (record_count % 50000 == 0) {
             printf("Processed %d records...\n", record_count);
         }
+        */
     }
 
     if (result < 0) {
@@ -170,7 +171,7 @@ int main(int argc, char *argv[]) {
     }
 
     printf("Processed %d sequences\n", record_count);
-    printf("Total sequence length: %zu bp\n", total_seq_length);
+    // printf("Total sequence length: %zu bp\n", total_seq_length);
 
     fasta_reader_free(reader);
     fclose(fp);
