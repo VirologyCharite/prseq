@@ -35,9 +35,13 @@ struct FastaReader {
 #[pymethods]
 impl FastaReader {
     #[new]
-    fn new(path: String) -> PyResult<Self> {
-        let reader = rust_prseq::FastaReader::from_file(&path)
-            .map_err(|e| PyIOError::new_err(e.to_string()))?;
+    #[pyo3(signature = (path, sequence_size_hint = None))]
+    fn new(path: String, sequence_size_hint: Option<usize>) -> PyResult<Self> {
+        let reader = match sequence_size_hint {
+            Some(hint) => rust_prseq::FastaReader::from_file_with_capacity(&path, hint),
+            None => rust_prseq::FastaReader::from_file(&path),
+        }
+        .map_err(|e| PyIOError::new_err(e.to_string()))?;
         Ok(FastaReader { reader })
     }
 
@@ -46,18 +50,32 @@ impl FastaReader {
     }
 
     fn __next__(mut slf: PyRefMut<'_, Self>) -> PyResult<Option<FastaRecord>> {
-        // We need to take ownership or do the work without releasing GIL
-        // Since FastaReader doesn't actually need the GIL, we can't easily
-        // release it while calling next() through PyRefMut
-
-        // Simpler approach: just call next without releasing GIL
+        // For single record reads, don't release GIL to avoid complexity
+        // The performance gain is minimal for individual records
         match slf.reader.next() {
             Some(Ok(record)) => Ok(Some(record.into())),
             Some(Err(e)) => Err(PyIOError::new_err(e.to_string())),
             None => Ok(None),
         }
     }
+
+    /// Read multiple records at once with GIL released for better performance
+    fn read_batch(&mut self, py: Python<'_>, count: usize) -> PyResult<Vec<FastaRecord>> {
+        // Release GIL for batch operations where the performance benefit is significant
+        py.allow_threads(move || {
+            let mut records = Vec::with_capacity(count);
+            for _ in 0..count {
+                match self.reader.next() {
+                    Some(Ok(record)) => records.push(record.into()),
+                    Some(Err(e)) => return Err(PyIOError::new_err(e.to_string())),
+                    None => break,
+                }
+            }
+            Ok(records)
+        })
+    }
 }
+
 
 #[pymodule]
 fn prseq(m: &Bound<'_, PyModule>) -> PyResult<()> {

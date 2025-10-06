@@ -25,17 +25,21 @@ class FastaReader:
         ...     print(f"{record.header}: {len(record.sequence)} bp")
     """
     
-    def __init__(self, path: str) -> None:
+    def __init__(self, path: str, sequence_size_hint: int | None = None) -> None:
         """Create a new FASTA reader.
-        
+
         Args:
             path: Path to the FASTA file
-            
+            sequence_size_hint: Optional hint for expected sequence length in characters.
+                              Helps optimize memory allocation. Use smaller values (100-1000)
+                              for short sequences like primers, or larger values (50000+)
+                              for genomes or long sequences.
+
         Raises:
             FileNotFoundError: If the file doesn't exist
             IOError: If there's an error reading the file
         """
-        self._reader = _FastaReader(path)
+        self._reader = _FastaReader(path, sequence_size_hint)
     
     def __iter__(self) -> Iterator[FastaRecord]:
         """Return the iterator object."""
@@ -55,20 +59,24 @@ class FastaReader:
         return FastaRecord(header=rust_record.header, sequence=rust_record.sequence)
 
 
-def read_fasta(path: str) -> list[FastaRecord]:
+def read_fasta(path: str, sequence_size_hint: int | None = None) -> list[FastaRecord]:
     """Read all FASTA records from a file.
-    
+
     This is a convenience function that reads all records into memory.
     For large files, consider using FastaReader as an iterator instead.
-    
+
     Args:
         path: Path to the FASTA file
-        
+        sequence_size_hint: Optional hint for expected sequence length in characters.
+                          Helps optimize memory allocation. Use smaller values (100-1000)
+                          for short sequences like primers, or larger values (50000+)
+                          for genomes or long sequences.
+
     Returns:
         List of all FASTA records in the file
-        
+
     Raises:
         FileNotFoundError: If the file doesn't exist
         IOError: If there's an error reading the file
     """
-    return list(FastaReader(path))
+    return list(FastaReader(path, sequence_size_hint))

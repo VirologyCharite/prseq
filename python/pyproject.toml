@@ -50,4 +50,5 @@ disallow_untyped_defs = true
 [dependency-groups]
 dev = [
     "bump2version>=1.0.1",
+    "dark-matter>=5.0.34",
 ]
