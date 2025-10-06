@@ -104,10 +104,23 @@ pub fn read_fasta<P: AsRef<Path>>(path: P) -> Result<Vec<FastaRecord>> {
 }
 
 /// Zero-copy FASTA reader that yields byte slices directly from memory buffer
+/// This version loads the entire file into memory - use StreamingZeroCopyFastaReader for large files
 pub struct ZeroCopyFastaReader {
     buffer: Vec<u8>,
     position: usize,
     sequence_hint: usize,
+}
+
+/// Streaming zero-copy FASTA reader that uses a fixed buffer and reuses memory
+/// WARNING: The returned byte slices are only valid until the next call to next_record()
+/// This is designed for very large files (TB+) that cannot fit in memory
+pub struct StreamingZeroCopyFastaReader {
+    file: std::fs::File,
+    buffer: Vec<u8>,
+    buffer_pos: usize,
+    buffer_len: usize,
+    overflow_buffer: Vec<u8>, // For records that span buffer boundaries
+    eof: bool,
 }
 
 impl ZeroCopyFastaReader {
@@ -136,7 +149,8 @@ impl ZeroCopyFastaReader {
 
 
     /// Read next FASTA record as owned byte vectors (zero-copy within each record)
-    pub fn next_record(&mut self) -> Option<std::io::Result<(Vec<u8>, Vec<Vec<u8>>)>> {
+    /// Returns (header, sequence_lines, total_sequence_length)
+    pub fn next_record(&mut self) -> Option<std::io::Result<(Vec<u8>, Vec<Vec<u8>>, usize)>> {
         self.skip_whitespace();
 
         if self.position >= self.buffer.len() {
@@ -170,8 +184,9 @@ impl ZeroCopyFastaReader {
             pos += 1;
         }
 
-        // Read sequence lines
+        // Read sequence lines and track total length
         let mut sequence_lines = Vec::with_capacity(self.sequence_hint / 80);
+        let mut total_sequence_length = 0usize;
 
         while pos < self.buffer.len() {
             // Check if we've hit the next record
@@ -193,6 +208,7 @@ impl ZeroCopyFastaReader {
             // Skip empty lines
             if line_end > line_start {
                 let line = self.buffer[line_start..line_end].to_vec();
+                total_sequence_length += line.len();
                 sequence_lines.push(line);
             }
 
@@ -203,12 +219,165 @@ impl ZeroCopyFastaReader {
         }
 
         self.position = pos;
-        Some(Ok((header, sequence_lines)))
+        Some(Ok((header, sequence_lines, total_sequence_length)))
     }
 }
 
 impl Iterator for ZeroCopyFastaReader {
-    type Item = std::io::Result<(Vec<u8>, Vec<Vec<u8>>)>;
+    type Item = std::io::Result<(Vec<u8>, Vec<Vec<u8>>, usize)>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.next_record()
+    }
+}
+
+impl StreamingZeroCopyFastaReader {
+    /// Create a new streaming zero-copy FASTA reader
+    /// buffer_size: Size of the internal buffer in bytes (e.g., 64KB = 65536)
+    pub fn from_file<P: AsRef<Path>>(path: P, buffer_size: usize) -> Result<Self> {
+        let file = std::fs::File::open(path)?;
+        let buffer_size = buffer_size.max(8192); // Minimum 8KB buffer
+        Ok(StreamingZeroCopyFastaReader {
+            file,
+            buffer: vec![0; buffer_size],
+            buffer_pos: 0,
+            buffer_len: 0,
+            overflow_buffer: Vec::new(),
+            eof: false,
+        })
+    }
+
+    /// Fill the buffer with more data from the file
+    fn fill_buffer(&mut self) -> Result<()> {
+        use std::io::Read;
+
+        if self.eof {
+            return Ok(());
+        }
+
+        // Move remaining data to the beginning of buffer
+        if self.buffer_pos > 0 && self.buffer_pos < self.buffer_len {
+            let remaining = self.buffer_len - self.buffer_pos;
+            self.buffer.copy_within(self.buffer_pos..self.buffer_len, 0);
+            self.buffer_pos = 0;
+            self.buffer_len = remaining;
+        } else {
+            self.buffer_pos = 0;
+            self.buffer_len = 0;
+        }
+
+        // Read more data
+        let bytes_read = self.file.read(&mut self.buffer[self.buffer_len..])?;
+        self.buffer_len += bytes_read;
+
+        if bytes_read == 0 {
+            self.eof = true;
+        }
+
+        Ok(())
+    }
+
+    /// Find the next complete FASTA record
+    /// Returns (header_bytes, sequence_bytes, total_sequence_length)
+    /// The returned Vec<u8> reuses internal buffers for memory efficiency
+    pub fn next_record(&mut self) -> Option<Result<(Vec<u8>, Vec<u8>, usize)>> {
+        loop {
+            // Ensure we have data
+            if self.buffer_pos >= self.buffer_len {
+                if let Err(e) = self.fill_buffer() {
+                    return Some(Err(e));
+                }
+                if self.buffer_len == 0 {
+                    return None; // EOF
+                }
+            }
+
+            // Find header start
+            while self.buffer_pos < self.buffer_len && self.buffer[self.buffer_pos] != b'>' {
+                self.buffer_pos += 1;
+            }
+
+            if self.buffer_pos >= self.buffer_len {
+                if self.eof {
+                    return None;
+                }
+                continue; // Need more data
+            }
+
+            // Found '>', now find end of header line
+            let header_start = self.buffer_pos + 1; // Skip '>'
+            let mut header_end = header_start;
+
+            while header_end < self.buffer_len && self.buffer[header_end] != b'\n' {
+                header_end += 1;
+            }
+
+            if header_end >= self.buffer_len && !self.eof {
+                // Header spans buffer boundary - need to handle this case
+                if let Err(e) = self.fill_buffer() {
+                    return Some(Err(e));
+                }
+                continue;
+            }
+
+            // Handle CRLF
+            let mut actual_header_end = header_end;
+            if actual_header_end > header_start && self.buffer[actual_header_end - 1] == b'\r' {
+                actual_header_end -= 1;
+            }
+
+            let header = self.buffer[header_start..actual_header_end].to_vec();
+
+            // Move past the newline
+            self.buffer_pos = if header_end < self.buffer_len { header_end + 1 } else { header_end };
+
+            // Now collect sequence data until next '>' or EOF
+            self.overflow_buffer.clear();
+            let mut total_sequence_length = 0usize;
+
+            loop {
+                // Find end of sequence (next '>' or EOF)
+                let mut seq_end = self.buffer_pos;
+                while seq_end < self.buffer_len && self.buffer[seq_end] != b'>' {
+                    seq_end += 1;
+                }
+
+                // Add current chunk to overflow buffer, skipping newlines
+                for &byte in &self.buffer[self.buffer_pos..seq_end] {
+                    if byte != b'\n' && byte != b'\r' {
+                        self.overflow_buffer.push(byte);
+                        total_sequence_length += 1;
+                    }
+                }
+
+                self.buffer_pos = seq_end;
+
+                if seq_end < self.buffer_len {
+                    // Found next record start
+                    break;
+                } else if self.eof {
+                    // End of file
+                    break;
+                } else {
+                    // Need more data
+                    if let Err(e) = self.fill_buffer() {
+                        return Some(Err(e));
+                    }
+                    if self.buffer_len == 0 {
+                        break; // EOF
+                    }
+                }
+            }
+
+            // Clone the sequence data - the overflow_buffer will be reused next iteration
+            let sequence = self.overflow_buffer.clone();
+            return Some(Ok((header, sequence, total_sequence_length)));
+        }
+    }
+}
+
+impl Iterator for StreamingZeroCopyFastaReader {
+    type Item = Result<(Vec<u8>, Vec<u8>, usize)>;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.next_record()

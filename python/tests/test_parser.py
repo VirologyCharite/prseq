@@ -97,19 +97,22 @@ def test_zero_copy_fasta_reader() -> None:
         assert len(records) == 2
 
         # Test first record
-        header1, seq_lines1 = records[0]
+        header1, seq_lines1, total_len1 = records[0]
         assert isinstance(header1, bytes)
         assert isinstance(seq_lines1, list)
+        assert isinstance(total_len1, int)
         assert header1 == b"seq1 description one"
         assert len(seq_lines1) == 2
         assert seq_lines1[0] == b"ATCGATCG"
         assert seq_lines1[1] == b"GCTAGCTA"
+        assert total_len1 == 16
 
         # Test second record
-        header2, seq_lines2 = records[1]
+        header2, seq_lines2, total_len2 = records[1]
         assert header2 == b"seq2 description two"
         assert len(seq_lines2) == 1
         assert seq_lines2[0] == b"GGGGCCCC"
+        assert total_len2 == 8
 
     finally:
         fasta_file.unlink()
@@ -124,8 +127,11 @@ def test_read_fasta_zero_copy_function() -> None:
         assert len(records) == 2
         assert isinstance(records[0][0], bytes)
         assert isinstance(records[0][1], list)
+        assert isinstance(records[0][2], int)
         assert records[0][0] == b"seq1 description one"
+        assert records[0][2] == 16
         assert records[1][0] == b"seq2 description two"
+        assert records[1][2] == 8
 
     finally:
         fasta_file.unlink()
@@ -137,18 +143,22 @@ def test_zero_copy_sequence_reconstruction() -> None:
     try:
         reader = ZeroCopyFastaReader(str(fasta_file))
 
-        for header_bytes, sequence_lines in reader:
+        for header_bytes, sequence_lines, total_length in reader:
             # Convert back to strings
             header = header_bytes.decode('utf-8')
             sequence = b''.join(sequence_lines).decode('utf-8')
 
             assert isinstance(header, str)
             assert isinstance(sequence, str)
+            assert isinstance(total_length, int)
+            assert len(sequence) == total_length
 
             if "seq1" in header:
                 assert sequence == "ATCGATCGGCTAGCTA"
+                assert total_length == 16
             elif "seq2" in header:
                 assert sequence == "GGGGCCCC"
+                assert total_length == 8
 
     finally:
         fasta_file.unlink()
@@ -166,13 +176,14 @@ def test_zero_copy_vs_regular_reader() -> None:
 
         assert len(regular_records) == len(zero_copy_records)
 
-        for regular, (header_bytes, seq_lines) in zip(regular_records, zero_copy_records):
+        for regular, (header_bytes, seq_lines, total_length) in zip(regular_records, zero_copy_records):
             # Convert zero-copy to strings
             header = header_bytes.decode('utf-8')
             sequence = b''.join(seq_lines).decode('utf-8')
 
             assert regular.header == header
             assert regular.sequence == sequence
+            assert len(regular.sequence) == total_length
 
     finally:
         fasta_file.unlink()
@@ -187,6 +198,7 @@ def test_zero_copy_large_sequence_hint() -> None:
 
         assert len(records) == 2
         assert records[0][0] == b"seq1 description one"
+        assert records[0][2] == 16  # total length
 
     finally:
         fasta_file.unlink()
@@ -198,10 +210,11 @@ def test_zero_copy_memory_efficiency() -> None:
     try:
         records = read_fasta_zero_copy(str(fasta_file))
 
-        for header_bytes, seq_lines in records:
+        for header_bytes, seq_lines, total_length in records:
             # Verify these are actual bytes objects, not strings
             assert type(header_bytes) is bytes
             assert type(seq_lines) is list
+            assert type(total_length) is int
             for line in seq_lines:
                 assert type(line) is bytes
 

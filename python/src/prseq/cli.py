@@ -3,7 +3,7 @@ import sys
 from pathlib import Path
 from typing import Optional
 
-from prseq import FastaReader, read_fasta, ZeroCopyFastaReader
+from prseq import FastaReader, read_fasta, ZeroCopyFastaReader, StreamingZeroCopyFastaReader
 
 
 def info() -> None:
@@ -96,6 +96,61 @@ def stats() -> None:
         sys.exit(1)
 
 
+def stats_streaming() -> None:
+    """Calculate statistics for sequences in a FASTA file using the streaming zero-copy reader."""
+    parser = argparse.ArgumentParser(
+        prog='fasta-stats-streaming',
+        description='Calculate statistics for sequences in a FASTA file using streaming reader'
+    )
+    parser.add_argument('file', help='FASTA file to analyze')
+    parser.add_argument(
+        '--buffer-size',
+        type=int,
+        default=65536,
+        help='Buffer size in bytes for streaming reader (default: 64KB)'
+    )
+
+    args = parser.parse_args()
+
+    if not Path(args.file).exists():
+        print(f"Error: File not found: {args.file}", file=sys.stderr)
+        sys.exit(1)
+
+    try:
+        reader = StreamingZeroCopyFastaReader(args.file, buffer_size=args.buffer_size)
+
+        total_seqs = 0
+        total_length = 0
+        min_length: Optional[int] = None
+        max_length: Optional[int] = None
+
+        for _, sequence_bytes, seq_len in reader:
+            total_seqs += 1
+            total_length += seq_len
+
+            if min_length is None or seq_len < min_length:
+                min_length = seq_len
+            if max_length is None or seq_len > max_length:
+                max_length = seq_len
+
+        if total_seqs == 0:
+            print("No sequences found in file")
+            return
+
+        avg_length = total_length / total_seqs
+
+        print(f"Statistics for: {args.file}")
+        print(f"  Total sequences: {total_seqs}")
+        print(f"  Total length: {total_length:,} bp")
+        print(f"  Average length: {avg_length:.1f} bp")
+        print(f"  Min length: {min_length:,} bp")
+        print(f"  Max length: {max_length:,} bp")
+
+    except Exception as e:
+        print(f"Error processing FASTA file: {e}", file=sys.stderr)
+        sys.exit(1)
+
+
 def stats_zero_copy() -> None:
     """Calculate statistics for sequences in a FASTA file using the zero-copy reader."""
     parser = argparse.ArgumentParser(
@@ -123,9 +178,63 @@ def stats_zero_copy() -> None:
         min_length: Optional[int] = None
         max_length: Optional[int] = None
 
-        for _, sequences in reader:
+        for _, sequences, seq_len in reader:
             total_seqs += 1
-            seq_len = sum(len(sequence) for sequence in sequences)
+            total_length += seq_len
+
+            if min_length is None or seq_len < min_length:
+                min_length = seq_len
+            if max_length is None or seq_len > max_length:
+                max_length = seq_len
+
+        if total_seqs == 0:
+            print("No sequences found in file")
+            return
+
+        avg_length = total_length / total_seqs
+
+        print(f"Statistics for: {args.file}")
+        print(f"  Total sequences: {total_seqs}")
+        print(f"  Total length: {total_length:,} bp")
+        print(f"  Average length: {avg_length:.1f} bp")
+        print(f"  Min length: {min_length:,} bp")
+        print(f"  Max length: {max_length:,} bp")
+
+    except Exception as e:
+        print(f"Error processing FASTA file: {e}", file=sys.stderr)
+        sys.exit(1)
+
+
+def stats_streaming() -> None:
+    """Calculate statistics for sequences in a FASTA file using the streaming zero-copy reader."""
+    parser = argparse.ArgumentParser(
+        prog='fasta-stats-streaming',
+        description='Calculate statistics for sequences in a FASTA file using streaming reader'
+    )
+    parser.add_argument('file', help='FASTA file to analyze')
+    parser.add_argument(
+        '--buffer-size',
+        type=int,
+        default=65536,
+        help='Buffer size in bytes for streaming reader (default: 64KB)'
+    )
+
+    args = parser.parse_args()
+
+    if not Path(args.file).exists():
+        print(f"Error: File not found: {args.file}", file=sys.stderr)
+        sys.exit(1)
+
+    try:
+        reader = StreamingZeroCopyFastaReader(args.file, buffer_size=args.buffer_size)
+
+        total_seqs = 0
+        total_length = 0
+        min_length: Optional[int] = None
+        max_length: Optional[int] = None
+
+        for _, sequence_bytes, seq_len in reader:
+            total_seqs += 1
             total_length += seq_len
 
             if min_length is None or seq_len < min_length:
@@ -186,6 +295,61 @@ def filter_cmd() -> None:
                 filtered += 1
 
         print(f"# Kept {kept} sequences, filtered {filtered} sequences", file=sys.stderr)
+
+    except Exception as e:
+        print(f"Error processing FASTA file: {e}", file=sys.stderr)
+        sys.exit(1)
+
+
+def stats_streaming() -> None:
+    """Calculate statistics for sequences in a FASTA file using the streaming zero-copy reader."""
+    parser = argparse.ArgumentParser(
+        prog='fasta-stats-streaming',
+        description='Calculate statistics for sequences in a FASTA file using streaming reader'
+    )
+    parser.add_argument('file', help='FASTA file to analyze')
+    parser.add_argument(
+        '--buffer-size',
+        type=int,
+        default=65536,
+        help='Buffer size in bytes for streaming reader (default: 64KB)'
+    )
+
+    args = parser.parse_args()
+
+    if not Path(args.file).exists():
+        print(f"Error: File not found: {args.file}", file=sys.stderr)
+        sys.exit(1)
+
+    try:
+        reader = StreamingZeroCopyFastaReader(args.file, buffer_size=args.buffer_size)
+
+        total_seqs = 0
+        total_length = 0
+        min_length: Optional[int] = None
+        max_length: Optional[int] = None
+
+        for _, sequence_bytes, seq_len in reader:
+            total_seqs += 1
+            total_length += seq_len
+
+            if min_length is None or seq_len < min_length:
+                min_length = seq_len
+            if max_length is None or seq_len > max_length:
+                max_length = seq_len
+
+        if total_seqs == 0:
+            print("No sequences found in file")
+            return
+
+        avg_length = total_length / total_seqs
+
+        print(f"Statistics for: {args.file}")
+        print(f"  Total sequences: {total_seqs}")
+        print(f"  Total length: {total_length:,} bp")
+        print(f"  Average length: {avg_length:.1f} bp")
+        print(f"  Min length: {min_length:,} bp")
+        print(f"  Max length: {max_length:,} bp")
 
     except Exception as e:
         print(f"Error processing FASTA file: {e}", file=sys.stderr)
