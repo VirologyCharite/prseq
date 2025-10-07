@@ -1,6 +1,6 @@
 [package]
 name = "prseq"
-version = "0.0.13"
+version = "0.0.14"
 edition = "2021"
 authors = ["Terry C. Jones <terence.jones@charite.de>"]
 license = "MIT OR Apache-2.0"
