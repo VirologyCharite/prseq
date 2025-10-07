@@ -1,7 +1,7 @@
+use crate::common::create_reader_with_compression;
 use std::fs::File;
 use std::io::{BufRead, Read, Result};
 use std::path::Path;
-use crate::common::create_reader_with_compression;
 
 /// Represents a single FASTA sequence with its id and sequence data
 #[derive(Debug, Clone, PartialEq)]
@@ -28,7 +28,10 @@ impl FastaReader {
     /// The size_hint helps optimize memory allocation for sequence data.
     /// Use smaller values (e.g., 100-1000) for short sequences like primers,
     /// or larger values (e.g., 50000+) for genomes or long sequences.
-    pub fn from_file_with_capacity<P: AsRef<Path>>(path: P, sequence_size_hint: usize) -> Result<Self> {
+    pub fn from_file_with_capacity<P: AsRef<Path>>(
+        path: P,
+        sequence_size_hint: usize,
+    ) -> Result<Self> {
         let file = File::open(path)?;
         Self::from_reader_with_capacity(file, sequence_size_hint)
     }
@@ -45,7 +48,10 @@ impl FastaReader {
     }
 
     /// Create a new FastaReader from any readable source with compression detection
-    pub fn from_reader_with_capacity<R: Read + Send + 'static>(reader: R, sequence_size_hint: usize) -> Result<Self> {
+    pub fn from_reader_with_capacity<R: Read + Send + 'static>(
+        reader: R,
+        sequence_size_hint: usize,
+    ) -> Result<Self> {
         let buf_reader = create_reader_with_compression(reader)?;
         let lines = buf_reader.lines();
 
@@ -100,7 +106,10 @@ impl FastaReader {
             }
         }
 
-        Ok(Some(FastaRecord { id: header, sequence }))
+        Ok(Some(FastaRecord {
+            id: header,
+            sequence,
+        }))
     }
 }
 
@@ -120,7 +129,10 @@ pub fn read_fasta<P: AsRef<Path>>(path: P) -> Result<Vec<FastaRecord>> {
     read_fasta_with_capacity(path, 64 * 1024)
 }
 
-pub fn read_fasta_with_capacity<P: AsRef<Path>>(path: P, sequence_size_hint: usize) -> Result<Vec<FastaRecord>> {
+pub fn read_fasta_with_capacity<P: AsRef<Path>>(
+    path: P,
+    sequence_size_hint: usize,
+) -> Result<Vec<FastaRecord>> {
     let reader = FastaReader::from_file_with_capacity(path, sequence_size_hint)?;
     reader.collect()
 }

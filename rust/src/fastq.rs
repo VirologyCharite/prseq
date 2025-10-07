@@ -1,7 +1,7 @@
+use crate::common::create_reader_with_compression;
 use std::fs::File;
 use std::io::{BufRead, Read, Result};
 use std::path::Path;
-use crate::common::create_reader_with_compression;
 
 /// Represents a single FASTQ sequence record
 #[derive(Debug, Clone, PartialEq)]
@@ -28,7 +28,10 @@ impl FastqReader {
     /// The size_hint helps optimize memory allocation for sequence data.
     /// Use smaller values (e.g., 100-1000) for short sequences like primers,
     /// or larger values (e.g., 50000+) for genomes or long sequences.
-    pub fn from_file_with_capacity<P: AsRef<Path>>(path: P, sequence_size_hint: usize) -> Result<Self> {
+    pub fn from_file_with_capacity<P: AsRef<Path>>(
+        path: P,
+        sequence_size_hint: usize,
+    ) -> Result<Self> {
         let file = File::open(path)?;
         Self::from_reader_with_capacity(file, sequence_size_hint)
     }
@@ -45,7 +48,10 @@ impl FastqReader {
     }
 
     /// Create a new FastqReader from any readable source with compression detection
-    pub fn from_reader_with_capacity<R: Read + Send + 'static>(reader: R, sequence_size_hint: usize) -> Result<Self> {
+    pub fn from_reader_with_capacity<R: Read + Send + 'static>(
+        reader: R,
+        sequence_size_hint: usize,
+    ) -> Result<Self> {
         let buf_reader = create_reader_with_compression(reader)?;
         let lines = buf_reader.lines();
 
@@ -106,7 +112,10 @@ impl FastqReader {
             if plus_id != id {
                 return Err(std::io::Error::new(
                     std::io::ErrorKind::InvalidData,
-                    format!("FASTQ '+' line ID '{}' does not match header ID '{}'", plus_id, id),
+                    format!(
+                        "FASTQ '+' line ID '{}' does not match header ID '{}'",
+                        plus_id, id
+                    ),
                 ));
             }
         }
@@ -152,7 +161,11 @@ impl FastqReader {
             ));
         }
 
-        Ok(Some(FastqRecord { id, sequence, quality }))
+        Ok(Some(FastqRecord {
+            id,
+            sequence,
+            quality,
+        }))
     }
 }
 
@@ -172,7 +185,10 @@ pub fn read_fastq<P: AsRef<Path>>(path: P) -> Result<Vec<FastqRecord>> {
     read_fastq_with_capacity(path, 64 * 1024)
 }
 
-pub fn read_fastq_with_capacity<P: AsRef<Path>>(path: P, sequence_size_hint: usize) -> Result<Vec<FastqRecord>> {
+pub fn read_fastq_with_capacity<P: AsRef<Path>>(
+    path: P,
+    sequence_size_hint: usize,
+) -> Result<Vec<FastqRecord>> {
     let reader = FastqReader::from_file_with_capacity(path, sequence_size_hint)?;
     reader.collect()
 }

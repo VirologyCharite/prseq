@@ -1,5 +1,5 @@
 // Integration tests - these test the public API using only public functions
-use prseq::{FastaReader, FastaRecord, read_fasta};
+use prseq::{read_fasta, FastaReader, FastaRecord};
 use std::io::Write;
 use tempfile::NamedTempFile;
 
@@ -17,9 +17,9 @@ fn create_test_fasta() -> NamedTempFile {
 fn test_fasta_reader_iterator() {
     let file = create_test_fasta();
     let reader = FastaReader::from_file(file.path()).unwrap();
-    
+
     let records: Vec<FastaRecord> = reader.map(|r| r.unwrap()).collect();
-    
+
     assert_eq!(records.len(), 2);
     assert_eq!(records[0].id, "seq1 description one");
     assert_eq!(records[0].sequence, "ATCGATCGGCTAGCTA");
@@ -31,7 +31,7 @@ fn test_fasta_reader_iterator() {
 fn test_read_fasta_convenience() {
     let file = create_test_fasta();
     let records = read_fasta(file.path()).unwrap();
-    
+
     assert_eq!(records.len(), 2);
     assert_eq!(records[0].sequence, "ATCGATCGGCTAGCTA");
 }
@@ -40,10 +40,9 @@ fn test_read_fasta_convenience() {
 fn test_invalid_fasta() {
     let mut file = NamedTempFile::new().unwrap();
     writeln!(file, "INVALID LINE").unwrap();
-    
+
     let reader = FastaReader::from_file(file.path()).unwrap();
     let result: Result<Vec<_>, _> = reader.collect();
-    
+
     assert!(result.is_err());
 }
-

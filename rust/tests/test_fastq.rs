@@ -1,5 +1,5 @@
 // Tests for FASTQ parsing functionality
-use prseq::fastq::{FastqReader, read_fastq};
+use prseq::fastq::{read_fastq, FastqReader};
 use std::io::{Cursor, Write};
 use tempfile::NamedTempFile;
 
@@ -24,7 +24,8 @@ fn test_basic_fastq_reading() {
 
 #[test]
 fn test_multiline_fastq() {
-    let content = b"@seq1 multiline\nATCG\nGCTA\n+seq1 multiline\nIIII\nJJJJ\n@seq2\nGG\nCC\n+\nKK\nLL\n";
+    let content =
+        b"@seq1 multiline\nATCG\nGCTA\n+seq1 multiline\nIIII\nJJJJ\n@seq2\nGG\nCC\n+\nKK\nLL\n";
     let cursor = Cursor::new(content);
     let mut reader = FastqReader::from_reader_with_capacity(cursor, 1024).unwrap();
 
@@ -50,7 +51,10 @@ fn test_fastq_plus_line_validation() {
 
     let result = reader.next().unwrap();
     assert!(result.is_err());
-    assert!(result.unwrap_err().to_string().contains("does not match header ID"));
+    assert!(result
+        .unwrap_err()
+        .to_string()
+        .contains("does not match header ID"));
 }
 
 #[test]
@@ -64,7 +68,10 @@ fn test_fastq_length_mismatch() {
     assert!(result.is_err());
     let error_msg = result.unwrap_err().to_string();
     println!("Error message: {}", error_msg);
-    assert!(error_msg.contains("Unexpected end of file") || error_msg.contains("does not match quality length"));
+    assert!(
+        error_msg.contains("Unexpected end of file")
+            || error_msg.contains("does not match quality length")
+    );
 }
 
 #[test]
@@ -106,7 +113,10 @@ fn test_invalid_fastq_start() {
 
     let result = reader.next().unwrap();
     assert!(result.is_err());
-    assert!(result.unwrap_err().to_string().contains("must start with '@'"));
+    assert!(result
+        .unwrap_err()
+        .to_string()
+        .contains("must start with '@'"));
 }
 
 #[test]
