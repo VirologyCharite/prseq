@@ -1,6 +1,6 @@
 [package]
 name = "prseq"
-version = "0.0.4"
+version = "0.0.5"
 edition = "2021"
 authors = ["Terry C. Jones <terence.jones@charite.de>"]
 license = "MIT OR Apache-2.0"
@@ -14,6 +14,8 @@ name = "prseq"
 path = "src/lib.rs"
 
 [dependencies]
+flate2 = "1.0"
+bzip2 = "0.4"
 
 [dev-dependencies]
 tempfile = "3"
