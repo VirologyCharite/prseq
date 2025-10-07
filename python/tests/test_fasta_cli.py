@@ -1,4 +1,4 @@
-"""Tests for CLI commands."""
+"""Integration tests for FASTA CLI commands via subprocess."""
 
 import subprocess
 import tempfile
@@ -20,7 +20,7 @@ ATCGATCGATCGATCGATCGATCG
 
 
 def test_fasta_info_command() -> None:
-    """Test fasta-info command."""
+    """Test fasta-info command via subprocess."""
     fasta_file = create_test_fasta()
     try:
         result = subprocess.run(
@@ -28,7 +28,7 @@ def test_fasta_info_command() -> None:
             capture_output=True,
             text=True
         )
-        
+
         assert result.returncode == 0
         assert "Number of sequences: 3" in result.stdout
         assert "seq1 short" in result.stdout
@@ -37,7 +37,7 @@ def test_fasta_info_command() -> None:
 
 
 def test_fasta_stats_command() -> None:
-    """Test fasta-stats command."""
+    """Test fasta-stats command via subprocess."""
     fasta_file = create_test_fasta()
     try:
         result = subprocess.run(
@@ -45,7 +45,7 @@ def test_fasta_stats_command() -> None:
             capture_output=True,
             text=True
         )
-        
+
         assert result.returncode == 0
         assert "Total sequences: 3" in result.stdout
         assert "Min length: 4" in result.stdout
@@ -55,7 +55,7 @@ def test_fasta_stats_command() -> None:
 
 
 def test_fasta_filter_command() -> None:
-    """Test fasta-filter command."""
+    """Test fasta-filter command via subprocess."""
     fasta_file = create_test_fasta()
     try:
         result = subprocess.run(

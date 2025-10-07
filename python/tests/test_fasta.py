@@ -1,19 +1,36 @@
-"""Tests for the FASTA parser Python bindings."""
+"""Tests for FASTA parsing Python API."""
 
 import bz2
 import gzip
 import subprocess
 import sys
 import tempfile
+from io import StringIO
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 
 from prseq.fasta import FastaReader, FastaRecord, read_fasta
+from prseq import cli
 
 
 def create_test_fasta() -> Path:
     """Create a temporary FASTA file for testing."""
+    content = """>seq1 short
+ATCG
+>seq2 medium
+ATCGATCGATCG
+>seq3 long
+ATCGATCGATCGATCGATCGATCG
+"""
+    with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.fasta') as f:
+        f.write(content)
+        return Path(f.name)
+
+
+def create_test_fasta_multiline() -> Path:
+    """Create a temporary FASTA file with multiline sequences."""
     content = """>seq1 description one
 ATCGATCG
 GCTAGCTA
@@ -23,72 +40,6 @@ GGGGCCCC
     with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.fasta') as f:
         f.write(content)
         return Path(f.name)
-
-
-def test_fasta_reader_iterator() -> None:
-    """Test iterating over FASTA records."""
-    fasta_file = create_test_fasta()
-    try:
-        reader = FastaReader(str(fasta_file))
-        records: list[FastaRecord] = list(reader)
-
-        assert len(records) == 2
-        assert records[0].id == "seq1 description one"
-        assert records[0].sequence == "ATCGATCGGCTAGCTA"
-        assert records[1].id == "seq2 description two"
-        assert records[1].sequence == "GGGGCCCC"
-    finally:
-        fasta_file.unlink()
-
-
-def test_read_fasta_convenience() -> None:
-    """Test the convenience function to read all records."""
-    fasta_file = create_test_fasta()
-    try:
-        records = read_fasta(str(fasta_file))
-        
-        assert len(records) == 2
-        assert records[0].sequence == "ATCGATCGGCTAGCTA"
-        assert isinstance(records[0], FastaRecord)
-    finally:
-        fasta_file.unlink()
-
-
-def test_file_not_found() -> None:
-    """Test error handling for missing files."""
-    with pytest.raises(IOError):
-        FastaReader("nonexistent.fasta")
-
-
-def test_fasta_record_tuple() -> None:
-    """Test that FastaRecord behaves as a NamedTuple."""
-    fasta_file = create_test_fasta()
-    try:
-        records = read_fasta(str(fasta_file))
-        record = records[0]
-
-        # Test tuple unpacking
-        record_id, sequence = record
-        assert record_id == "seq1 description one"
-        assert sequence == "ATCGATCGGCTAGCTA"
-
-        # Test attribute access
-        assert record.id == record_id
-        assert record.sequence == sequence
-    finally:
-        fasta_file.unlink()
-
-
-def test_multiple_iterations() -> None:
-    """Test that we can iterate multiple times."""
-    fasta_file = create_test_fasta()
-    try:
-        records1 = read_fasta(str(fasta_file))
-        records2 = read_fasta(str(fasta_file))
-
-        assert records1 == records2
-    finally:
-        fasta_file.unlink()
 
 
 def create_compressed_test_fasta(compression: str) -> Path:
@@ -113,6 +64,76 @@ GGGGCCCC
             return Path(f.name)
     else:
         raise ValueError(f"Unsupported compression: {compression}")
+
+
+# ============================================================================
+# FastaReader API tests
+# ============================================================================
+
+def test_fasta_reader_iterator() -> None:
+    """Test iterating over FASTA records."""
+    fasta_file = create_test_fasta_multiline()
+    try:
+        reader = FastaReader(str(fasta_file))
+        records: list[FastaRecord] = list(reader)
+
+        assert len(records) == 2
+        assert records[0].id == "seq1 description one"
+        assert records[0].sequence == "ATCGATCGGCTAGCTA"
+        assert records[1].id == "seq2 description two"
+        assert records[1].sequence == "GGGGCCCC"
+    finally:
+        fasta_file.unlink()
+
+
+def test_read_fasta_convenience() -> None:
+    """Test the convenience function to read all records."""
+    fasta_file = create_test_fasta_multiline()
+    try:
+        records = read_fasta(str(fasta_file))
+
+        assert len(records) == 2
+        assert records[0].sequence == "ATCGATCGGCTAGCTA"
+        assert isinstance(records[0], FastaRecord)
+    finally:
+        fasta_file.unlink()
+
+
+def test_file_not_found() -> None:
+    """Test error handling for missing files."""
+    with pytest.raises(IOError):
+        FastaReader("nonexistent.fasta")
+
+
+def test_fasta_record_tuple() -> None:
+    """Test that FastaRecord behaves as a NamedTuple."""
+    fasta_file = create_test_fasta_multiline()
+    try:
+        records = read_fasta(str(fasta_file))
+        record = records[0]
+
+        # Test tuple unpacking
+        record_id, sequence = record
+        assert record_id == "seq1 description one"
+        assert sequence == "ATCGATCGGCTAGCTA"
+
+        # Test attribute access
+        assert record.id == record_id
+        assert record.sequence == sequence
+    finally:
+        fasta_file.unlink()
+
+
+def test_multiple_iterations() -> None:
+    """Test that we can iterate multiple times."""
+    fasta_file = create_test_fasta_multiline()
+    try:
+        records1 = read_fasta(str(fasta_file))
+        records2 = read_fasta(str(fasta_file))
+
+        assert records1 == records2
+    finally:
+        fasta_file.unlink()
 
 
 def test_gzip_compression() -> None:
@@ -260,3 +281,57 @@ print(f"{records[0].id}")
     assert lines[1] == "seq1 class method test"
 
 
+# ============================================================================
+# CLI function tests (direct Python API)
+# ============================================================================
+
+def test_fasta_info_function() -> None:
+    """Test fasta-info CLI function directly."""
+    fasta_file = create_test_fasta()
+    try:
+        with patch('sys.argv', ['fasta-info', str(fasta_file)]):
+            with patch('sys.stdout', new=StringIO()) as mock_stdout:
+                cli.info()
+                output = mock_stdout.getvalue()
+
+                assert "Number of sequences: 3" in output
+                assert "seq1 short" in output
+    finally:
+        fasta_file.unlink()
+
+
+def test_fasta_stats_function() -> None:
+    """Test fasta-stats CLI function directly."""
+    fasta_file = create_test_fasta()
+    try:
+        with patch('sys.argv', ['fasta-stats', str(fasta_file)]):
+            with patch('sys.stdout', new=StringIO()) as mock_stdout:
+                cli.stats()
+                output = mock_stdout.getvalue()
+
+                assert "Total sequences: 3" in output
+                assert "Min length: 4" in output
+                assert "Max length: 24" in output
+    finally:
+        fasta_file.unlink()
+
+
+def test_fasta_filter_function() -> None:
+    """Test fasta-filter CLI function directly."""
+    fasta_file = create_test_fasta()
+    try:
+        with patch('sys.argv', ['fasta-filter', '10', str(fasta_file)]):
+            with patch('sys.stdout', new=StringIO()) as mock_stdout:
+                with patch('sys.stderr', new=StringIO()) as mock_stderr:
+                    cli.filter_cmd()
+                    output = mock_stdout.getvalue()
+                    stderr = mock_stderr.getvalue()
+
+                    # Should keep seq2 and seq3, filter seq1
+                    assert ">seq2 medium" in output
+                    assert ">seq3 long" in output
+                    assert ">seq1 short" not in output
+                    assert "Kept 2" in stderr
+                    assert "filtered 1" in stderr
+    finally:
+        fasta_file.unlink()
