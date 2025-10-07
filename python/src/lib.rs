@@ -35,11 +35,42 @@ struct FastaReader {
 #[pymethods]
 impl FastaReader {
     #[new]
-    #[pyo3(signature = (path, sequence_size_hint = None))]
-    fn new(path: String, sequence_size_hint: Option<usize>) -> PyResult<Self> {
+    #[pyo3(signature = (path = None, sequence_size_hint = None))]
+    fn new(path: Option<String>, sequence_size_hint: Option<usize>) -> PyResult<Self> {
+        let reader = match path {
+            Some(file_path) if file_path == "-" => {
+                // Treat "-" as stdin
+                match sequence_size_hint {
+                    Some(hint) => rust_prseq::FastaReader::from_stdin_with_capacity(hint),
+                    None => rust_prseq::FastaReader::from_stdin(),
+                }
+            },
+            Some(file_path) => {
+                // Regular file
+                match sequence_size_hint {
+                    Some(hint) => rust_prseq::FastaReader::from_file_with_capacity(&file_path, hint),
+                    None => rust_prseq::FastaReader::from_file(&file_path),
+                }
+            },
+            None => {
+                // No path provided, read from stdin
+                match sequence_size_hint {
+                    Some(hint) => rust_prseq::FastaReader::from_stdin_with_capacity(hint),
+                    None => rust_prseq::FastaReader::from_stdin(),
+                }
+            }
+        }
+        .map_err(|e| PyIOError::new_err(e.to_string()))?;
+        Ok(FastaReader { reader })
+    }
+
+    /// Create a FastaReader from stdin
+    #[staticmethod]
+    #[pyo3(signature = (sequence_size_hint = None))]
+    fn from_stdin(sequence_size_hint: Option<usize>) -> PyResult<Self> {
         let reader = match sequence_size_hint {
-            Some(hint) => rust_prseq::FastaReader::from_file_with_capacity(&path, hint),
-            None => rust_prseq::FastaReader::from_file(&path),
+            Some(hint) => rust_prseq::FastaReader::from_stdin_with_capacity(hint),
+            None => rust_prseq::FastaReader::from_stdin(),
         }
         .map_err(|e| PyIOError::new_err(e.to_string()))?;
         Ok(FastaReader { reader })

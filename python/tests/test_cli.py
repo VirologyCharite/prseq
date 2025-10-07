@@ -59,11 +59,11 @@ def test_fasta_filter_command() -> None:
     fasta_file = create_test_fasta()
     try:
         result = subprocess.run(
-            ["fasta-filter", str(fasta_file), "10"],
+            ["fasta-filter", "10", str(fasta_file)],
             capture_output=True,
             text=True
         )
-        
+
         assert result.returncode == 0
         # Should keep seq2 and seq3, filter seq1
         assert ">seq2 medium" in result.stdout

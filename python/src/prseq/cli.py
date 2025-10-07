@@ -7,12 +7,12 @@ from prseq import FastaReader, read_fasta
 
 
 def info() -> None:
-    """Display basic information about a FASTA file."""
+    """Display basic information about a FASTA file or stdin."""
     parser = argparse.ArgumentParser(
         prog='fasta-info',
-        description='Display basic information about a FASTA file'
+        description='Display basic information about a FASTA file or stdin'
     )
-    parser.add_argument('file', help='FASTA file to analyze')
+    parser.add_argument('file', nargs='?', help='FASTA file to analyze (reads from stdin if not provided)')
     parser.add_argument(
         '--size-hint',
         type=int,
@@ -21,14 +21,16 @@ def info() -> None:
 
     args = parser.parse_args()
 
-    if not Path(args.file).exists():
+    # Check file exists only if not reading from stdin
+    if args.file and args.file != "-" and not Path(args.file).exists():
         print(f"Error: File not found: {args.file}", file=sys.stderr)
         sys.exit(1)
 
     try:
         records = read_fasta(args.file, sequence_size_hint=args.size_hint)
 
-        print(f"File: {args.file}")
+        source = args.file if args.file else "stdin"
+        print(f"Source: {source}")
         print(f"Number of sequences: {len(records)}")
 
         if records:
@@ -37,17 +39,17 @@ def info() -> None:
             print(f"  Length: {len(records[0].sequence)} bp")
 
     except Exception as e:
-        print(f"Error reading FASTA file: {e}", file=sys.stderr)
+        print(f"Error reading FASTA input: {e}", file=sys.stderr)
         sys.exit(1)
 
 
 def stats() -> None:
-    """Calculate statistics for sequences in a FASTA file."""
+    """Calculate statistics for sequences in a FASTA file or stdin."""
     parser = argparse.ArgumentParser(
         prog='fasta-stats',
-        description='Calculate statistics for sequences in a FASTA file'
+        description='Calculate statistics for sequences in a FASTA file or stdin'
     )
-    parser.add_argument('file', help='FASTA file to analyze')
+    parser.add_argument('file', nargs='?', help='FASTA file to analyze (reads from stdin if not provided)')
     parser.add_argument(
         '--size-hint',
         type=int,
@@ -56,7 +58,8 @@ def stats() -> None:
 
     args = parser.parse_args()
 
-    if not Path(args.file).exists():
+    # Check file exists only if not reading from stdin
+    if args.file and args.file != "-" and not Path(args.file).exists():
         print(f"Error: File not found: {args.file}", file=sys.stderr)
         sys.exit(1)
 
@@ -79,12 +82,13 @@ def stats() -> None:
                 max_length = seq_len
 
         if total_seqs == 0:
-            print("No sequences found in file")
+            print("No sequences found in input")
             return
 
         avg_length = total_length / total_seqs
 
-        print(f"Statistics for: {args.file}")
+        source = args.file if args.file else "stdin"
+        print(f"Statistics for: {source}")
         print(f"  Total sequences: {total_seqs}")
         print(f"  Total length: {total_length:,} bp")
         print(f"  Average length: {avg_length:.1f} bp")
@@ -92,7 +96,7 @@ def stats() -> None:
         print(f"  Max length: {max_length:,} bp")
 
     except Exception as e:
-        print(f"Error processing FASTA file: {e}", file=sys.stderr)
+        print(f"Error processing FASTA input: {e}", file=sys.stderr)
         sys.exit(1)
 
 
@@ -104,8 +108,8 @@ def filter_cmd() -> None:
         prog='fasta-filter',
         description='Filter FASTA sequences by minimum length'
     )
-    parser.add_argument('file', help='FASTA file to filter')
     parser.add_argument('min_length', type=int, help='Minimum sequence length to keep')
+    parser.add_argument('file', nargs='?', help='FASTA file to filter (reads from stdin if not provided)')
     parser.add_argument(
         '--size-hint',
         type=int,
@@ -114,7 +118,8 @@ def filter_cmd() -> None:
 
     args = parser.parse_args()
 
-    if not Path(args.file).exists():
+    # Check file exists only if not reading from stdin
+    if args.file and args.file != "-" and not Path(args.file).exists():
         print(f"Error: File not found: {args.file}", file=sys.stderr)
         sys.exit(1)
 
@@ -135,5 +140,5 @@ def filter_cmd() -> None:
         print(f"# Kept {kept} sequences, filtered {filtered} sequences", file=sys.stderr)
 
     except Exception as e:
-        print(f"Error processing FASTA file: {e}", file=sys.stderr)
+        print(f"Error processing FASTA input: {e}", file=sys.stderr)
         sys.exit(1)
