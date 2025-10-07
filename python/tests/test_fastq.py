@@ -1,8 +1,8 @@
 """Tests for FASTQ parsing functionality."""
 
-import tempfile
-import gzip
 import bz2
+import gzip
+import tempfile
 from pathlib import Path
 
 import pytest

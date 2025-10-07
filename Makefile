@@ -7,6 +7,9 @@ test:
 	make -C rust $@
 	make -C python $@
 
+publish: bumpversion
+	git push origin main --tags
+
 clean:
 	find . -name '*~' -print0 | xargs -r -0 rm
 	make -C c $@

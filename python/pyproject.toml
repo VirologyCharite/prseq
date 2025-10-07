@@ -6,7 +6,7 @@ authors = [
     {name = "Terry C. Jones", email = "terence.jones@charite.de"}
 ]
 readme = "README.md"
-requires-python = ">=3.8,<3.13"
+requires-python = ">=3.10,<3.13"
 classifiers = [
     "Programming Language :: Rust",
     "Programming Language :: Python :: 3",
@@ -54,5 +54,6 @@ disallow_untyped_defs = true
 [dependency-groups]
 dev = [
     "bump2version>=1.0.1",
-    "dark-matter>=5.0.34",
+    "nox>=2025.5.1",
+    "ruff>=0.14.0",
 ]

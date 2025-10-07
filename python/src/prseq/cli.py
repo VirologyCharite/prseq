@@ -34,7 +34,7 @@ def info() -> None:
         print(f"Number of sequences: {len(records)}")
 
         if records:
-            print(f"First sequence:")
+            print("First sequence:")
             print(f"  ID: {records[0].id}")
             print(f"  Length: {len(records[0].sequence)} bp")
 
@@ -172,7 +172,7 @@ def fastq_info() -> None:
         print(f"Number of sequences: {len(records)}")
 
         if records:
-            print(f"First sequence:")
+            print("First sequence:")
             print(f"  ID: {records[0].id}")
             print(f"  Length: {len(records[0].sequence)} bp")
             print(f"  Quality length: {len(records[0].quality)}")

@@ -1,6 +1,7 @@
 """FASTQ file parsing functionality."""
 
 from typing import Iterator
+
 import prseq._prseq as _prseq
 
 

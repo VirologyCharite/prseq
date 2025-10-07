@@ -1,14 +1,15 @@
 """Tests for the FASTA parser Python bindings."""
 
-import gzip
 import bz2
-import tempfile
+import gzip
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 import pytest
-from prseq.fasta import FastaRecord, FastaReader, read_fasta
+
+from prseq.fasta import FastaReader, FastaRecord, read_fasta
 
 
 def create_test_fasta() -> Path:

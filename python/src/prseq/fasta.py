@@ -1,6 +1,7 @@
 """FASTA file parsing functionality."""
 
 from typing import Iterator, NamedTuple
+
 import prseq._prseq as _prseq
 
 

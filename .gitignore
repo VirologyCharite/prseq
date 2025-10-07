@@ -4,3 +4,4 @@ python/src/prseq/*.so
 python/.venv
 __pycache__
 c/fasta_reader
+python/.nox
