@@ -55,5 +55,6 @@ disallow_untyped_defs = true
 dev = [
     "bump2version>=1.0.1",
     "nox>=2025.5.1",
+    "pytest>=8.4.2",
     "ruff>=0.14.0",
 ]

@@ -1,7 +1,8 @@
-target
 *~
+__pycache__
+target
 python/src/prseq/*.so
 python/.venv
-__pycache__
-c/fasta_reader
 python/.nox
+c/fasta_reader
+c/test_runner

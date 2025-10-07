@@ -3,7 +3,11 @@
 # informally testing the speed of the Rust/Python combination). So 'make
 # test' is not automatically run in the 'c' directory because that would
 # assume you have gcc installed, which may not be the case.
-test:
+build:
+	make -C rust $@
+	make -C python $@
+
+test: build
 	make -C rust $@
 	make -C python $@
 

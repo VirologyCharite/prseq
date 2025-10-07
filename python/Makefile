@@ -1,4 +1,7 @@
-test:
+build:
+	uvx maturin develop --release
+
+test: build
 	uv run pytest
 
 ruff:
