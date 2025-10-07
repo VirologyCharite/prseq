@@ -31,19 +31,13 @@ class FastqReader:
     @classmethod
     def from_file(cls, path: str, sequence_size_hint: int | None = None) -> 'FastqReader':
         """Create a FastqReader from a file path."""
-        if sequence_size_hint is None:
-            reader = _prseq.FastqReader.from_file(path)
-        else:
-            reader = _prseq.FastqReader.from_file_with_capacity(path, sequence_size_hint)
+        reader = _prseq.FastqReader.from_file(path, sequence_size_hint)
         return cls(reader)
 
     @classmethod
     def from_stdin(cls, sequence_size_hint: int | None = None) -> 'FastqReader':
         """Create a FastqReader from stdin."""
-        if sequence_size_hint is None:
-            reader = _prseq.FastqReader.from_stdin()
-        else:
-            reader = _prseq.FastqReader.from_stdin_with_capacity(sequence_size_hint)
+        reader = _prseq.FastqReader.from_stdin(sequence_size_hint)
         return cls(reader)
 
     def __iter__(self) -> Iterator[FastqRecord]:
@@ -65,8 +59,5 @@ def read_fastq(path: str | None = None, sequence_size_hint: int | None = None) -
         return list(reader)
     else:
         # Read from file - use efficient Rust convenience functions
-        if sequence_size_hint is None:
-            rust_records = _prseq.read_fastq(path)
-        else:
-            rust_records = _prseq.read_fastq_with_capacity(path, sequence_size_hint)
+        rust_records = _prseq.read_fastq(path, sequence_size_hint)
         return [FastqRecord(r.id, r.sequence, r.quality) for r in rust_records]

@@ -45,16 +45,10 @@ class FastaReader:
         """
         if path is None or path == "-":
             # Read from stdin
-            if sequence_size_hint is None:
-                self._reader = _prseq.FastaReader.from_stdin()
-            else:
-                self._reader = _prseq.FastaReader.from_stdin_with_capacity(sequence_size_hint)
+            self._reader = _prseq.FastaReader.from_stdin(sequence_size_hint)
         else:
             # Read from file
-            if sequence_size_hint is None:
-                self._reader = _prseq.FastaReader.from_file(path)
-            else:
-                self._reader = _prseq.FastaReader.from_file_with_capacity(path, sequence_size_hint)
+            self._reader = _prseq.FastaReader.from_file(path, sequence_size_hint)
 
     @classmethod
     def from_file(cls, path: str, sequence_size_hint: int | None = None) -> 'FastaReader':
@@ -79,9 +73,5 @@ class FastaReader:
 
 def read_fasta(path: str, sequence_size_hint: int | None = None) -> list[FastaRecord]:
     """Read all FASTA records from a file into a list."""
-    if sequence_size_hint is None:
-        rust_records = _prseq.read_fasta(path)
-    else:
-        rust_records = _prseq.read_fasta_with_capacity(path, sequence_size_hint)
-
+    rust_records = _prseq.read_fasta(path, sequence_size_hint)
     return [FastaRecord(r.id, r.sequence) for r in rust_records]
