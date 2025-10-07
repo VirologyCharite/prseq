@@ -4,10 +4,10 @@ use std::path::Path;
 use flate2::read::GzDecoder;
 use bzip2::read::BzDecoder;
 
-/// Represents a single FASTA sequence with its header and sequence data
+/// Represents a single FASTA sequence with its id and sequence data
 #[derive(Debug, Clone, PartialEq)]
 pub struct FastaRecord {
-    pub header: String,
+    pub id: String,
     pub sequence: String,
 }
 
@@ -21,7 +21,7 @@ pub struct FastaReader {
 impl FastaReader {
     /// Create a new FastaReader from a file path
     pub fn from_file<P: AsRef<Path>>(path: P) -> Result<Self> {
-        Self::from_file_with_capacity(path, 8192)
+        Self::from_file_with_capacity(path, 64 * 1024)
     }
 
     /// Create a new FastaReader from a file path with a sequence size hint
@@ -36,7 +36,7 @@ impl FastaReader {
 
     /// Create a new FastaReader from stdin
     pub fn from_stdin() -> Result<Self> {
-        Self::from_stdin_with_capacity(8192)
+        Self::from_stdin_with_capacity(64 * 1024)
     }
 
     /// Create a new FastaReader from stdin with a sequence size hint
@@ -133,7 +133,7 @@ impl FastaReader {
             }
         }
 
-        Ok(Some(FastaRecord { header, sequence }))
+        Ok(Some(FastaRecord { id: header, sequence }))
     }
 }
 
@@ -150,99 +150,12 @@ impl Iterator for FastaReader {
 }
 
 pub fn read_fasta<P: AsRef<Path>>(path: P) -> Result<Vec<FastaRecord>> {
-    let reader = FastaReader::from_file(path)?;
+    read_fasta_with_capacity(path, 64 * 1024)
+}
+
+pub fn read_fasta_with_capacity<P: AsRef<Path>>(path: P, sequence_size_hint: usize) -> Result<Vec<FastaRecord>> {
+    let reader = FastaReader::from_file_with_capacity(path, sequence_size_hint)?;
     reader.collect()
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use std::io::Cursor;
-    use tempfile::NamedTempFile;
-    use std::io::Write;
-
-    #[test]
-    fn test_basic_reading() {
-        let content = b">seq1 test\nATCG\nGCTA\n>seq2 test\nGGCC\n";
-        let cursor = Cursor::new(content);
-        let mut reader = FastaReader::from_reader_with_capacity(cursor, 1024).unwrap();
-
-        let record1 = reader.next().unwrap().unwrap();
-        assert_eq!(record1.header, "seq1 test");
-        assert_eq!(record1.sequence, "ATCGGCTA");
-
-        let record2 = reader.next().unwrap().unwrap();
-        assert_eq!(record2.header, "seq2 test");
-        assert_eq!(record2.sequence, "GGCC");
-
-        assert!(reader.next().is_none());
-    }
-
-    #[test]
-    fn test_gzip_compression() {
-        use flate2::write::GzEncoder;
-        use flate2::Compression;
-
-        let content = b">seq1 compressed\nATCG\n>seq2 compressed\nGGCC\n";
-        let mut encoder = GzEncoder::new(Vec::new(), Compression::default());
-        encoder.write_all(content).unwrap();
-        let compressed = encoder.finish().unwrap();
-
-        let cursor = Cursor::new(compressed);
-        let mut reader = FastaReader::from_reader_with_capacity(cursor, 1024).unwrap();
-
-        let record1 = reader.next().unwrap().unwrap();
-        assert_eq!(record1.header, "seq1 compressed");
-        assert_eq!(record1.sequence, "ATCG");
-
-        let record2 = reader.next().unwrap().unwrap();
-        assert_eq!(record2.header, "seq2 compressed");
-        assert_eq!(record2.sequence, "GGCC");
-
-        assert!(reader.next().is_none());
-    }
-
-    #[test]
-    fn test_bzip2_compression() {
-        use bzip2::write::BzEncoder;
-        use bzip2::Compression;
-
-        let content = b">seq1 bz2\nATCG\n>seq2 bz2\nGGCC\n";
-        let mut encoder = BzEncoder::new(Vec::new(), Compression::default());
-        encoder.write_all(content).unwrap();
-        let compressed = encoder.finish().unwrap();
-
-        let cursor = Cursor::new(compressed);
-        let mut reader = FastaReader::from_reader_with_capacity(cursor, 1024).unwrap();
-
-        let record1 = reader.next().unwrap().unwrap();
-        assert_eq!(record1.header, "seq1 bz2");
-        assert_eq!(record1.sequence, "ATCG");
-
-        let record2 = reader.next().unwrap().unwrap();
-        assert_eq!(record2.header, "seq2 bz2");
-        assert_eq!(record2.sequence, "GGCC");
-
-        assert!(reader.next().is_none());
-    }
-
-    #[test]
-    fn test_file_reading() {
-        let content = ">seq1 file test\nATCG\nGCTA\n>seq2 file test\nGGCC\n";
-        let mut temp_file = NamedTempFile::new().unwrap();
-        temp_file.write_all(content.as_bytes()).unwrap();
-
-        let mut reader = FastaReader::from_file(temp_file.path()).unwrap();
-
-        let record1 = reader.next().unwrap().unwrap();
-        assert_eq!(record1.header, "seq1 file test");
-        assert_eq!(record1.sequence, "ATCGGCTA");
-
-        let record2 = reader.next().unwrap().unwrap();
-        assert_eq!(record2.header, "seq2 file test");
-        assert_eq!(record2.sequence, "GGCC");
-
-        assert!(reader.next().is_none());
-    }
-}
 

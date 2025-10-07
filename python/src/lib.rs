@@ -21,7 +21,7 @@ impl FastaRecord {
 impl From<rust_prseq::FastaRecord> for FastaRecord {
     fn from(record: rust_prseq::FastaRecord) -> Self {
         FastaRecord {
-            header: record.header,
+            header: record.id,
             sequence: record.sequence,
         }
     }

@@ -1,3 +1,4 @@
+// Integration tests - these test the public API using only public functions
 use prseq::{FastaReader, FastaRecord, read_fasta};
 use std::io::Write;
 use tempfile::NamedTempFile;
@@ -20,9 +21,9 @@ fn test_fasta_reader_iterator() {
     let records: Vec<FastaRecord> = reader.map(|r| r.unwrap()).collect();
     
     assert_eq!(records.len(), 2);
-    assert_eq!(records[0].header, "seq1 description one");
+    assert_eq!(records[0].id, "seq1 description one");
     assert_eq!(records[0].sequence, "ATCGATCGGCTAGCTA");
-    assert_eq!(records[1].header, "seq2 description two");
+    assert_eq!(records[1].id, "seq2 description two");
     assert_eq!(records[1].sequence, "GGGGCCCC");
 }
 

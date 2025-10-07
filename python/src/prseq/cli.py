@@ -1,9 +1,8 @@
 import argparse
 import sys
 from pathlib import Path
-from typing import Optional
 
-from prseq import FastaReader, read_fasta
+from .fasta import FastaReader, read_fasta
 
 
 def info() -> None:
@@ -35,7 +34,7 @@ def info() -> None:
 
         if records:
             print(f"First sequence:")
-            print(f"  Header: {records[0].header}")
+            print(f"  ID: {records[0].id}")
             print(f"  Length: {len(records[0].sequence)} bp")
 
     except Exception as e:
@@ -68,8 +67,8 @@ def stats() -> None:
 
         total_seqs = 0
         total_length = 0
-        min_length: Optional[int] = None
-        max_length: Optional[int] = None
+        min_length: int | None = None
+        max_length: int | None = None
 
         for record in reader:
             total_seqs += 1
@@ -131,7 +130,7 @@ def filter_cmd() -> None:
 
         for record in reader:
             if len(record.sequence) >= args.min_length:
-                print(f">{record.header}")
+                print(f">{record.id}")
                 print(record.sequence)
                 kept += 1
             else:

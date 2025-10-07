@@ -6,10 +6,9 @@ import tempfile
 import subprocess
 import sys
 from pathlib import Path
-from typing import List
 
 import pytest
-from prseq import FastaRecord, FastaReader, read_fasta
+from prseq.fasta import FastaRecord, FastaReader, read_fasta
 
 
 def create_test_fasta() -> Path:
@@ -30,12 +29,12 @@ def test_fasta_reader_iterator() -> None:
     fasta_file = create_test_fasta()
     try:
         reader = FastaReader(str(fasta_file))
-        records: List[FastaRecord] = list(reader)
-        
+        records: list[FastaRecord] = list(reader)
+
         assert len(records) == 2
-        assert records[0].header == "seq1 description one"
+        assert records[0].id == "seq1 description one"
         assert records[0].sequence == "ATCGATCGGCTAGCTA"
-        assert records[1].header == "seq2 description two"
+        assert records[1].id == "seq2 description two"
         assert records[1].sequence == "GGGGCCCC"
     finally:
         fasta_file.unlink()
@@ -66,14 +65,14 @@ def test_fasta_record_tuple() -> None:
     try:
         records = read_fasta(str(fasta_file))
         record = records[0]
-        
+
         # Test tuple unpacking
-        header, sequence = record
-        assert header == "seq1 description one"
+        record_id, sequence = record
+        assert record_id == "seq1 description one"
         assert sequence == "ATCGATCGGCTAGCTA"
-        
+
         # Test attribute access
-        assert record.header == header
+        assert record.id == record_id
         assert record.sequence == sequence
     finally:
         fasta_file.unlink()
@@ -120,12 +119,12 @@ def test_gzip_compression() -> None:
     fasta_file = create_compressed_test_fasta("gzip")
     try:
         reader = FastaReader(str(fasta_file))
-        records: List[FastaRecord] = list(reader)
+        records: list[FastaRecord] = list(reader)
 
         assert len(records) == 2
-        assert records[0].header == "seq1 compressed test"
+        assert records[0].id == "seq1 compressed test"
         assert records[0].sequence == "ATCGATCGGCTAGCTA"
-        assert records[1].header == "seq2 another compressed"
+        assert records[1].id == "seq2 another compressed"
         assert records[1].sequence == "GGGGCCCC"
     finally:
         fasta_file.unlink()
@@ -136,12 +135,12 @@ def test_bz2_compression() -> None:
     fasta_file = create_compressed_test_fasta("bz2")
     try:
         reader = FastaReader(str(fasta_file))
-        records: List[FastaRecord] = list(reader)
+        records: list[FastaRecord] = list(reader)
 
         assert len(records) == 2
-        assert records[0].header == "seq1 compressed test"
+        assert records[0].id == "seq1 compressed test"
         assert records[0].sequence == "ATCGATCGGCTAGCTA"
-        assert records[1].header == "seq2 another compressed"
+        assert records[1].id == "seq2 another compressed"
         assert records[1].sequence == "GGGGCCCC"
     finally:
         fasta_file.unlink()
@@ -158,10 +157,10 @@ GGGGCCCC
     result = subprocess.run(
         [sys.executable, "-c", """
 import sys
-from prseq import FastaReader
+from prseq.fasta import FastaReader
 records = list(FastaReader('-'))
 print(f"{len(records)}")
-print(f"{records[0].header}")
+print(f"{records[0].id}")
 print(f"{records[0].sequence}")
 """],
         input=fasta_content,
@@ -187,10 +186,10 @@ GGGGCCCC
     result = subprocess.run(
         [sys.executable, "-c", """
 import sys
-from prseq import FastaReader
+from prseq.fasta import FastaReader
 records = list(FastaReader())
 print(f"{len(records)}")
-print(f"{records[0].header}")
+print(f"{records[0].id}")
 print(f"{records[0].sequence}")
 """],
         input=fasta_content,
@@ -218,10 +217,10 @@ GGGGCCCC
     result = subprocess.run(
         [sys.executable, "-c", """
 import sys
-from prseq import FastaReader
+from prseq.fasta import FastaReader
 records = list(FastaReader())
 print(f"{len(records)}")
-print(f"{records[0].header}")
+print(f"{records[0].id}")
 print(f"{records[0].sequence}")
 """],
         input=compressed_content,
@@ -244,10 +243,10 @@ ATCGATCG
     result = subprocess.run(
         [sys.executable, "-c", """
 import sys
-from prseq import FastaReader
+from prseq.fasta import FastaReader
 records = list(FastaReader.from_stdin())
 print(f"{len(records)}")
-print(f"{records[0].header}")
+print(f"{records[0].id}")
 """],
         input=fasta_content,
         text=True,
