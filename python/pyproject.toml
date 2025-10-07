@@ -1,6 +1,6 @@
 [project]
 name = "prseq"
-version = "0.0.5"
+version = "0.0.6"
 description = "Python tools (backed by Rust) for sequence analysis"
 authors = [
     {name = "Terry C. Jones", email = "terence.jones@charite.de"}
@@ -18,7 +18,7 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Topic :: Scientific/Engineering :: Bio-Informatics",
 ]
-keywords = ["bioinformatics", "fasta", "rust", "sequence analysis"]
+keywords = ["bioinformatics", "fasta", "fastq", "rust", "sequence analysis"]
 
 [project.urls]
 Homepage = "https://github.com/virologieCharite/prseq"
@@ -28,6 +28,9 @@ Repository = "https://github.com/virologieCharite/prseq"
 fasta-info = "prseq.cli:info"
 fasta-stats = "prseq.cli:stats"
 fasta-filter = "prseq.cli:filter_cmd"
+fastq-info = "prseq.cli:fastq_info"
+fastq-stats = "prseq.cli:fastq_stats"
+fastq-filter = "prseq.cli:fastq_filter"
 
 [build-system]
 requires = ["maturin>=1.0,<2.0"]
@@ -36,7 +39,7 @@ build-backend = "maturin"
 [tool.maturin]
 features = ["pyo3/extension-module"]
 python-source = "src"
-module-name = "prseq.prseq"
+module-name = "prseq._prseq"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
