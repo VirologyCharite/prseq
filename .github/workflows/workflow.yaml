@@ -9,16 +9,33 @@ permissions:
   contents: read
 
 jobs:
+  publish-rust-crate:
+    name: Publish Rust crate to crates.io
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+
+      - name: Publish to crates.io
+        working-directory: rust
+        run: cargo publish --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
+
   build-wheels:
     name: Build wheels on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-    
+
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
@@ -26,14 +43,14 @@ jobs:
           args: --release --out dist
           working-directory: python
           manylinux: auto
-      
+
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
           name: wheels-${{ matrix.os }}
           path: python/dist
 
-  publish:
+  publish-python:
     name: Publish to PyPI
     needs: build-wheels
     runs-on: ubuntu-latest
@@ -41,7 +58,7 @@ jobs:
     permissions:
       id-token: write  # REQUIRED for trusted publishing
       contents: read
-    
+
     steps:
       - name: Download all wheels
         uses: actions/download-artifact@v4
@@ -49,7 +66,7 @@ jobs:
           pattern: wheels-*
           merge-multiple: true
           path: dist
-      
+
       - name: Publish to PyPI using Trusted Publishing
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
