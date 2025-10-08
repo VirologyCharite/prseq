@@ -26,10 +26,4 @@ bumpversion:
 	uv run bump2version patch
 
 wc:
-	wc -l \
-            c/*.c \
-            python/src/*.rs \
-            python/src/prseq/*.py \
-            python/tests/*.py \
-            rust/src/*.rs \
-            rust/tests/*.rs
+	find c python/{src,tests,benchmark} rust \( -name '*.c' -o -name '*.h' -o -name '*.py' -o -name '*.rs' \) -print0 | xargs -0 wc -l
