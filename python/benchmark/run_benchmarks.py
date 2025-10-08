@@ -91,6 +91,10 @@ def print_results(fasta_results: list, fastq_results: list):
     bio_fasta_slowdown = 0
     bio_fastq_pct = 0
     bio_fastq_slowdown = 0
+    pure_fasta_pct = 0
+    pure_fasta_slowdown = 0
+    pure_fastq_pct = 0
+    pure_fastq_slowdown = 0
 
     if fasta_results:
         print("\nFASTA Benchmarks:")
@@ -107,13 +111,16 @@ def print_results(fasta_results: list, fastq_results: list):
                 pct_of_c = (throughput / c_throughput * 100) if c_throughput > 0 else 100
                 slowdown = (c_throughput / throughput) if throughput > 0 else 0
 
-                # Store for summary (assuming order: C, Rust, BioPython)
+                # Store for summary (assuming order: C, Rust, BioPython, Pure Python)
                 if i == 1:
                     rust_fasta_pct = pct_of_c
                     rust_fasta_slowdown = slowdown
                 elif i == 2:
                     bio_fasta_pct = pct_of_c
                     bio_fasta_slowdown = slowdown
+                elif i == 3:
+                    pure_fasta_pct = pct_of_c
+                    pure_fasta_slowdown = slowdown
 
                 print(f"{result['name']:<20} "
                       f"{result.get('sequences', 0):>12,} "
@@ -138,13 +145,16 @@ def print_results(fasta_results: list, fastq_results: list):
                 pct_of_c = (throughput / c_throughput * 100) if c_throughput > 0 else 100
                 slowdown = (c_throughput / throughput) if throughput > 0 else 0
 
-                # Store for summary (assuming order: C, Rust, BioPython)
+                # Store for summary (assuming order: C, Rust, BioPython, Pure Python)
                 if i == 1:
                     rust_fastq_pct = pct_of_c
                     rust_fastq_slowdown = slowdown
                 elif i == 2:
                     bio_fastq_pct = pct_of_c
                     bio_fastq_slowdown = slowdown
+                elif i == 3:
+                    pure_fastq_pct = pct_of_c
+                    pure_fastq_slowdown = slowdown
 
                 print(f"{result['name']:<20} "
                       f"{result.get('sequences', 0):>12,} "
@@ -164,6 +174,9 @@ def print_results(fasta_results: list, fastq_results: list):
     if fastq_results and bio_fasta_pct > 0:
         print(f"- BioPython: {bio_fasta_pct:.1f}% of C speed for FASTA ({bio_fasta_slowdown:.2f}x slower), "
               f"{bio_fastq_pct:.1f}% for FASTQ ({bio_fastq_slowdown:.2f}x slower)")
+    if fasta_results and pure_fasta_pct > 0:
+        print(f"- Pure Python: {pure_fasta_pct:.1f}% of C speed for FASTA ({pure_fasta_slowdown:.2f}x slower), "
+              f"{pure_fastq_pct:.1f}% for FASTQ ({pure_fastq_slowdown:.2f}x slower)")
 
 
 def main():
@@ -223,7 +236,7 @@ def main():
     parser.add_argument(
         "--skip",
         action="append",
-        choices=['rust', 'biopython', 'c'],
+        choices=['rust', 'biopython', 'c', 'pure'],
         help="Skip specific implementations"
     )
 
@@ -249,7 +262,8 @@ def main():
     implementations = [
         ('c', 'bench_c.py'),
         ('rust', 'bench_rust_python.py'),
-        ('biopython', 'bench_biopython.py')
+        ('biopython', 'bench_biopython.py'),
+        ('pure', 'bench_pure_python.py')
     ]
 
     for impl_name, script_name in implementations:
