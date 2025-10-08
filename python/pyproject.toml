@@ -58,3 +58,6 @@ dev = [
     "pytest>=8.4.2",
     "ruff>=0.14.0",
 ]
+benchmark = [
+    "biopython>=1.80",
+]

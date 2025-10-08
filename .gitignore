@@ -5,4 +5,9 @@ python/src/prseq/*.so
 python/.venv
 python/.nox
 c/fasta_reader
+c/fastq_reader
+c/fasta_info
+c/fastq_info
 c/test_runner
+python/benchmark/data/
+python/benchmark/benchmark_results.txt

@@ -120,20 +120,47 @@ For complete API documentation, see:
 - ✅ **Comprehensive error handling** with clear messages
 - ✅ **Cross-platform** support (Linux, macOS, Windows)
 
-## Performance
+## Benchmarks
 
-prseq is designed for high-performance sequence processing:
+We benchmark prseq against BioPython and a pure C implementation to
+demonstrate performance characteristics. The benchmark generates synthetic
+FASTA and FASTQ files with 500,000 sequences ranging from 100-20,000 bases
+each, then measures throughput (MB/s) for parsing.
 
-- **Rust core**: Zero-copy parsing where possible
-- **Streaming**: Process files larger than available RAM
-- **Compression**: Built-in support without external tools
-- **Buffer tuning**: Optimize for your sequence lengths
-- **Minimal allocations**: Efficient memory usage patterns
+**Test Configuration:**
+- 500,000 sequences per file
+- Sequence lengths: 100-20,000 bases
+- FASTA file: ~4.9 GB
+- FASTQ file: ~9.7 GB
 
-Benchmark on 1M sequences (your mileage may vary):
-- FASTA parsing: ~200 MB/s
-- FASTQ parsing: ~150 MB/s
-- Gzip decompression: ~100 MB/s
+**Results:**
+
+**FASTA Benchmarks:**
+| Implementation | Throughput | % of C | Slowdown |
+|----------------|------------|--------|----------|
+| C | 1,280.77 MB/s | 100.0% | 1.00x |
+| Rust/Python (prseq) | 1,207.32 MB/s | 94.3% | 1.06x |
+| BioPython | 608.81 MB/s | 47.5% | 2.10x |
+
+**FASTQ Benchmarks:**
+| Implementation | Throughput | % of C | Slowdown |
+|----------------|------------|--------|----------|
+| C | 646.53 MB/s | 100.0% | 1.00x |
+| Rust/Python (prseq) | 612.83 MB/s | 94.8% | 1.05x |
+| BioPython | 154.45 MB/s | 23.9% | 4.19x |
+
+**Key findings:**
+- **Rust/Python (prseq)**: Achieves 94.3% of C speed for FASTA and 94.8% for
+  FASTQ, providing near-native performance with memory safety and Python
+  integration
+- **BioPython**: 47.5% of C speed for FASTA (2.10x slower), 23.9% for FASTQ
+  (4.19x slower)
+
+To run benchmarks yourself:
+```bash
+cd python/benchmark
+make
+```
 
 ## Development
 
