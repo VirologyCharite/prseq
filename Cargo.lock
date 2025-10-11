@@ -181,7 +181,7 @@ dependencies = [
 
 [[package]]
 name = "prseq"
-version = "0.0.15"
+version = "0.0.17"
 dependencies = [
  "bzip2",
  "flate2",
@@ -190,7 +190,7 @@ dependencies = [
 
 [[package]]
 name = "prseq_py"
-version = "0.0.15"
+version = "0.0.17"
 dependencies = [
  "prseq",
  "pyo3",

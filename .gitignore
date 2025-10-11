@@ -11,3 +11,5 @@ c/fastq_info
 c/test_runner
 python/benchmark/data/
 python/benchmark/benchmark_results.txt
+*.so
+c/build
