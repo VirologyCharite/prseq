@@ -11,8 +11,8 @@ from unittest.mock import patch
 
 import pytest
 
-from prseq.fasta import FastaReader, FastaRecord, read_fasta
 from prseq import cli
+from prseq.fasta import FastaReader, FastaRecord, read_fasta
 
 
 def create_test_fasta() -> Path:

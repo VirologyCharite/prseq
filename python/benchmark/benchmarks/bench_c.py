@@ -100,7 +100,7 @@ def main():
         print(f"  Sequence bases: {results['sequence_bases']:,}", file=sys.stderr)
 
     # Print results
-    print(f"C")
+    print("C")
     print(f"  Sequences: {results['count']:,}")
     print(f"  Total bases: {results['total_bases']:,}")
     print(f"  Time: {results['elapsed']:.3f}s")

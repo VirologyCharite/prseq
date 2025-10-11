@@ -183,7 +183,7 @@ make
 
 ### Prerequisites
 - Rust 1.70+
-- Python 3.8-3.12
+- Python 3.10-3.12
 - maturin for Python builds
 
 ### Setup

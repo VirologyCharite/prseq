@@ -56,8 +56,8 @@ def main():
     results = benchmark_file(filepath)
 
     # Print results
-    print(f"wc -l")
-    print(f"  Sequences: 0")
+    print("wc -l")
+    print("  Sequences: 0")
     print(f"  Total bases: {results['total_bases']:,}")
     print(f"  Time: {results['elapsed']:.3f}s")
     print(f"  Throughput: {results['throughput_mb_s']:.2f} MB/s")

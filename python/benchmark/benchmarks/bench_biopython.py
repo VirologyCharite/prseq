@@ -78,7 +78,7 @@ def main():
         sys.exit(1)
 
     # Print results
-    print(f"BioPython")
+    print("BioPython")
     print(f"  Sequences: {results['count']:,}")
     print(f"  Total bases: {results['total_bases']:,}")
     print(f"  Time: {results['elapsed']:.3f}s")
