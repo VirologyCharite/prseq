@@ -1,7 +1,7 @@
 # Makefile for benchmarking FASTA/FASTQ parsers
 
 # Default benchmark parameters
-SEQUENCES ?= 500000
+SEQUENCES ?= 1000000
 SEQ_MIN ?= 100
 SEQ_MAX ?= 20000
 SIZE_HINT ?= 21000
