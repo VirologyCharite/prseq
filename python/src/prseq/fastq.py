@@ -23,22 +23,54 @@ class FastqRecord:
 
 
 class FastqReader:
-    """Iterator for reading FASTQ records from a file or stdin."""
+    """Iterator for reading FASTQ records from a file, file object, or stdin.
 
-    def __init__(self, reader):
-        self._reader = reader
+    Example:
+        >>> reader = FastqReader.from_file("sequences.fastq")  # Read from file
+        >>> reader = FastqReader.from_stdin()  # Read from stdin
+        >>> with open("file.fastq", "rb") as f:
+        ...     reader = FastqReader(file=f)  # Read from file object
+        >>> for record in reader:
+        ...     print(f"{record.id}: {len(record.sequence)} bp")
+    """
+
+    def __init__(
+        self,
+        path: str | None = None,
+        file: object | None = None,
+        sequence_size_hint: int | None = None,
+    ):
+        """Create a new FASTQ reader.
+
+        Args:
+            path: Path to the FASTQ file, or None/"-" for stdin. Files can be uncompressed,
+                  gzip-compressed (.gz), or bzip2-compressed (.bz2). Compression is
+                  automatically detected.
+            file: A Python file-like object opened in binary mode. If provided, path must be None.
+            sequence_size_hint: Optional hint for expected sequence length in characters.
+                              Helps optimize memory allocation.
+
+        Raises:
+            FileNotFoundError: If the file doesn't exist
+            IOError: If there's an error reading the file
+            ValueError: If both path and file are provided
+        """
+        self._reader = _prseq.FastqReader(path=path, file=file, sequence_size_hint=sequence_size_hint)
 
     @classmethod
     def from_file(cls, path: str, sequence_size_hint: int | None = None) -> 'FastqReader':
         """Create a FastqReader from a file path."""
-        reader = _prseq.FastqReader.from_file(path, sequence_size_hint)
-        return cls(reader)
+        return cls(path=path, sequence_size_hint=sequence_size_hint)
+
+    @classmethod
+    def from_file_object(cls, file: object, sequence_size_hint: int | None = None) -> 'FastqReader':
+        """Create a FastqReader from a Python file-like object."""
+        return cls(file=file, sequence_size_hint=sequence_size_hint)
 
     @classmethod
     def from_stdin(cls, sequence_size_hint: int | None = None) -> 'FastqReader':
         """Create a FastqReader from stdin."""
-        reader = _prseq.FastqReader.from_stdin(sequence_size_hint)
-        return cls(reader)
+        return cls(path=None, sequence_size_hint=sequence_size_hint)
 
     def __iter__(self) -> Iterator[FastqRecord]:
         return self

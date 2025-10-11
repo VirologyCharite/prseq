@@ -281,6 +281,86 @@ print(f"{records[0].id}")
     assert lines[1] == "seq1 class method test"
 
 
+def test_file_object_with_open() -> None:
+    """Test reading from an already-opened file object."""
+    fasta_file = create_test_fasta_multiline()
+    try:
+        with open(fasta_file, 'rb') as f:
+            reader = FastaReader(file=f)
+            records: list[FastaRecord] = list(reader)
+
+        assert len(records) == 2
+        assert records[0].id == "seq1 description one"
+        assert records[0].sequence == "ATCGATCGGCTAGCTA"
+        assert records[1].id == "seq2 description two"
+        assert records[1].sequence == "GGGGCCCC"
+    finally:
+        fasta_file.unlink()
+
+
+def test_file_object_with_from_file_object() -> None:
+    """Test reading from a file object using the from_file_object class method."""
+    fasta_file = create_test_fasta_multiline()
+    try:
+        with open(fasta_file, 'rb') as f:
+            reader = FastaReader.from_file_object(f)
+            records: list[FastaRecord] = list(reader)
+
+        assert len(records) == 2
+        assert records[0].id == "seq1 description one"
+        assert records[0].sequence == "ATCGATCGGCTAGCTA"
+    finally:
+        fasta_file.unlink()
+
+
+def test_file_object_gzip_compressed() -> None:
+    """Test reading from a gzip-compressed file object."""
+    fasta_file = create_compressed_test_fasta("gzip")
+    try:
+        with open(fasta_file, 'rb') as f:
+            reader = FastaReader(file=f)
+            records: list[FastaRecord] = list(reader)
+
+        assert len(records) == 2
+        assert records[0].id == "seq1 compressed test"
+        assert records[0].sequence == "ATCGATCGGCTAGCTA"
+        assert records[1].id == "seq2 another compressed"
+        assert records[1].sequence == "GGGGCCCC"
+    finally:
+        fasta_file.unlink()
+
+
+def test_file_object_io_bytesio() -> None:
+    """Test reading from an io.BytesIO object."""
+    from io import BytesIO
+
+    fasta_content = b""">seq1 bytesio test
+ATCGATCG
+>seq2 another bytesio
+GGGGCCCC
+"""
+    file_obj = BytesIO(fasta_content)
+    reader = FastaReader(file=file_obj)
+    records: list[FastaRecord] = list(reader)
+
+    assert len(records) == 2
+    assert records[0].id == "seq1 bytesio test"
+    assert records[0].sequence == "ATCGATCG"
+    assert records[1].id == "seq2 another bytesio"
+    assert records[1].sequence == "GGGGCCCC"
+
+
+def test_file_object_and_path_error() -> None:
+    """Test that providing both file and path raises an error."""
+    fasta_file = create_test_fasta_multiline()
+    try:
+        with open(fasta_file, 'rb') as f:
+            with pytest.raises(IOError, match="Cannot specify both path and file"):
+                FastaReader(path=str(fasta_file), file=f)
+    finally:
+        fasta_file.unlink()
+
+
 # ============================================================================
 # CLI function tests (direct Python API)
 # ============================================================================

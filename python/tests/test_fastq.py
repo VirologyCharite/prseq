@@ -166,3 +166,93 @@ def test_file_not_found() -> None:
     """Test error handling for missing files."""
     with pytest.raises(IOError):
         list(FastqReader.from_file("nonexistent_file.fastq"))
+
+
+def test_file_object_with_open() -> None:
+    """Test reading from an already-opened file object."""
+    fastq_file = create_test_fastq()
+    try:
+        with open(fastq_file, 'rb') as f:
+            reader = FastqReader(file=f)
+            records: list[FastqRecord] = list(reader)
+
+        assert len(records) == 3
+        assert records[0].id == "seq1 test sequence"
+        assert records[0].sequence == "ATCGGATCCTAG"
+        assert records[0].quality == "IIIIIIIIIIII"
+        assert records[1].id == "seq2 another test"
+        assert records[1].sequence == "GGCCTTAAGGGG"
+        assert records[1].quality == "JJJJJJJJJJJJ"
+    finally:
+        fastq_file.unlink()
+
+
+def test_file_object_with_from_file_object() -> None:
+    """Test reading from a file object using the from_file_object class method."""
+    fastq_file = create_test_fastq()
+    try:
+        with open(fastq_file, 'rb') as f:
+            reader = FastqReader.from_file_object(f)
+            records: list[FastqRecord] = list(reader)
+
+        assert len(records) == 3
+        assert records[0].id == "seq1 test sequence"
+        assert records[0].sequence == "ATCGGATCCTAG"
+    finally:
+        fastq_file.unlink()
+
+
+def test_file_object_gzip_compressed() -> None:
+    """Test reading from a gzip-compressed file object."""
+    fastq_file = create_compressed_test_fastq("gzip")
+    try:
+        with open(fastq_file, 'rb') as f:
+            reader = FastqReader(file=f)
+            records: list[FastqRecord] = list(reader)
+
+        assert len(records) == 2
+        assert records[0].id == "seq1 compressed"
+        assert records[0].sequence == "ATCGGATCC"
+        assert records[0].quality == "IIIIIIIII"
+        assert records[1].id == "seq2 compressed too"
+        assert records[1].sequence == "GGCCTTAA"
+        assert records[1].quality == "JJJJJJJJ"
+    finally:
+        fastq_file.unlink()
+
+
+def test_file_object_io_bytesio() -> None:
+    """Test reading from an io.BytesIO object."""
+    from io import BytesIO
+
+    fastq_content = b"""@seq1 bytesio test
+ATCGGATCC
++
+IIIIIIIII
+@seq2 another bytesio
+GGCCTTAA
++
+JJJJJJJJ
+"""
+    file_obj = BytesIO(fastq_content)
+    reader = FastqReader(file=file_obj)
+    records: list[FastqRecord] = list(reader)
+
+    assert len(records) == 2
+    assert records[0].id == "seq1 bytesio test"
+    assert records[0].sequence == "ATCGGATCC"
+    assert records[0].quality == "IIIIIIIII"
+    assert records[1].id == "seq2 another bytesio"
+    assert records[1].sequence == "GGCCTTAA"
+    assert records[1].quality == "JJJJJJJJ"
+
+
+def test_file_object_and_path_error() -> None:
+    """Test that providing both file and path raises an error."""
+    fastq_file = create_test_fastq()
+    try:
+        with open(fastq_file, 'rb') as f:
+            with pytest.raises(IOError, match="Cannot specify both path and file"):
+                FastqReader(path=str(fastq_file), file=f)
+    finally:
+        fastq_file.unlink()
