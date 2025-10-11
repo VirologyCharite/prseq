@@ -137,26 +137,26 @@ characteristics. The benchmark generates synthetic FASTA and FASTQ files with
 **Results:**
 
 **FASTA Benchmarks:**
-| Implementation | Elapsed | Throughput | % of C | Slowdown |
-|----------------|---------|------------|--------|----------|
-| cat > /dev/null | 0.381s | 12,813.54 MB/s | 990.9% | 0.101x |
-| wc -l | 4.799s | 1,016.69 MB/s | 78.6% | 1.272x |
-| C | 3.773s | 1,293.14 MB/s | 100.0% | 1.000x |
-| Rust/Python (prseq) | 3.959s | 1,218.86 MB/s | 94.3% | 1.061x |
-| C/Python | 4.211s | 1,158.67 MB/s | 89.6% | 1.116x |
-| BioPython | 7.903s | 617.32 MB/s | 47.7% | 2.095x |
-| Pure Python | 8.232s | 592.66 MB/s | 45.8% | 2.182x |
+| Implementation      | Elapsed (s) | Throughput (MB/s) | Relative to C |
+|---------------------|------------:|------------------:|--------------:|
+| cat > /dev/null     |       0.381 |         12,813.54 |         0.101 |
+| wc -l               |       4.799 |          1,016.69 |         1.272 |
+| C                   |       3.773 |          1,293.14 |         1.000 |
+| Rust/Python (prseq) |       3.959 |          1,218.86 |         1.061 |
+| C/Python            |       4.211 |          1,158.67 |         1.116 |
+| BioPython           |       7.903 |            617.32 |         2.095 |
+| Pure Python         |       8.232 |            592.66 |         2.182 |
 
 **FASTQ Benchmarks:**
-| Implementation | Elapsed | Throughput | % of C | Slowdown |
-|----------------|---------|------------|--------|----------|
-| cat > /dev/null | 0.754s | 12,907.08 MB/s | 974.5% | 0.103x |
-| wc -l | 9.295s | 1,046.72 MB/s | 79.0% | 1.265x |
-| C | 7.346s | 1,324.48 MB/s | 100.0% | 1.000x |
-| Rust/Python (prseq) | 7.769s | 1,252.42 MB/s | 94.6% | 1.058x |
-| C/Python | 8.205s | 1,185.89 MB/s | 89.5% | 1.117x |
-| BioPython | 30.552s | 318.46 MB/s | 24.0% | 4.159x |
-| Pure Python | 18.067s | 538.54 MB/s | 40.7% | 2.459x |
+| Implementation      | Elapsed (s) | Throughput (MB/s) | Relative to C |
+|---------------------|------------:|------------------:|--------------:|
+| cat > /dev/null     |       0.754 |         12,907.08 |         0.103 |
+| wc -l               |       9.295 |          1,046.72 |         1.265 |
+| C                   |       7.346 |          1,324.48 |         1.000 |
+| Rust/Python (prseq) |       7.769 |          1,252.42 |         1.058 |
+| C/Python            |       8.205 |          1,185.89 |         1.117 |
+| BioPython           |      30.552 |            318.46 |         4.159 |
+| Pure Python         |      18.067 |            538.54 |         2.459 |
 
 **Key findings:**
 - **cat**: Raw I/O baseline at ~12.9 GB/s shows the theoretical maximum for file
