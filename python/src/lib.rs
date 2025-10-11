@@ -54,12 +54,12 @@ impl From<rust_prseq::FastqRecord> for FastqRecord {
     }
 }
 
-#[pyclass]
+#[pyclass(unsendable)]
 struct FastaReader {
     reader: rust_prseq::FastaReader,
 }
 
-#[pyclass]
+#[pyclass(unsendable)]
 struct FastqReader {
     reader: rust_prseq::FastqReader,
 }
