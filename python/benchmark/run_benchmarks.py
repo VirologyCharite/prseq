@@ -19,8 +19,16 @@ def ensure_data_exists(
     fasta_file = data_dir / "benchmark.fasta"
     fastq_file = data_dir / "benchmark.fastq"
 
-    if not fasta_file.exists() or not fastq_file.exists():
+    if fasta_file.exists() and fastq_file.exists():
+        print(f"Re-using existing benchmark data in {data_dir}/")
+        print(f"  FASTA: {fasta_file.stat().st_size:,} bytes")
+        print(f"  FASTQ: {fastq_file.stat().st_size:,} bytes")
+        print()
+    else:
         print("Generating benchmark data...")
+        # Create data directory if it doesn't exist
+        data_dir.mkdir(parents=True, exist_ok=True)
+
         cmd = [
             sys.executable,
             "generate_data.py",
@@ -115,12 +123,14 @@ def print_results(fasta_results: list, fastq_results: list):
         )
         print("-" * 120)
 
-        # Get C baseline throughput (first result should be C)
-        c_throughput = (
-            fasta_results[0].get("throughput", 0)
-            if fasta_results and fasta_results[0]
-            else 0
-        )
+        # Get C baseline throughput (cat, wc, then C)
+        c_index = 2  # C is third (after cat and wc)
+        c_throughput = 0
+        for i, result in enumerate(fasta_results):
+            if result and result.get('name', '').startswith('C') and not result.get('name', '').startswith('C/'):
+                c_throughput = result.get("throughput", 0)
+                c_index = i
+                break
 
         for i, result in enumerate(fasta_results):
             if result:
@@ -130,17 +140,17 @@ def print_results(fasta_results: list, fastq_results: list):
                 )
                 slowdown = (c_throughput / throughput) if throughput > 0 else 0
 
-                # Store for summary (assuming order: C, C/Python, Rust, BioPython, Pure Python)
-                if i == 1:
+                # Store for summary (assuming order: cat, wc, C, C/Python, Rust, BioPython, Pure Python)
+                if i == c_index + 1:  # C/Python
                     c_python_fasta_pct = pct_of_c
                     c_python_fasta_slowdown = slowdown
-                elif i == 2:
+                elif i == c_index + 2:  # Rust
                     rust_fasta_pct = pct_of_c
                     rust_fasta_slowdown = slowdown
-                elif i == 3:
+                elif i == c_index + 3:  # BioPython
                     bio_fasta_pct = pct_of_c
                     bio_fasta_slowdown = slowdown
-                elif i == 4:
+                elif i == c_index + 4:  # Pure Python
                     pure_fasta_pct = pct_of_c
                     pure_fasta_slowdown = slowdown
 
@@ -162,12 +172,14 @@ def print_results(fasta_results: list, fastq_results: list):
         )
         print("-" * 120)
 
-        # Get C baseline throughput (first result should be C)
-        c_throughput = (
-            fastq_results[0].get("throughput", 0)
-            if fastq_results and fastq_results[0]
-            else 0
-        )
+        # Get C baseline throughput (cat, wc, then C)
+        c_index = 2  # C is third (after cat and wc)
+        c_throughput = 0
+        for i, result in enumerate(fastq_results):
+            if result and result.get('name', '').startswith('C') and not result.get('name', '').startswith('C/'):
+                c_throughput = result.get("throughput", 0)
+                c_index = i
+                break
 
         for i, result in enumerate(fastq_results):
             if result:
@@ -177,17 +189,17 @@ def print_results(fasta_results: list, fastq_results: list):
                 )
                 slowdown = (c_throughput / throughput) if throughput > 0 else 0
 
-                # Store for summary (assuming order: C, C/Python, Rust, BioPython, Pure Python)
-                if i == 1:
+                # Store for summary (assuming order: cat, wc, C, C/Python, Rust, BioPython, Pure Python)
+                if i == c_index + 1:  # C/Python
                     c_python_fastq_pct = pct_of_c
                     c_python_fastq_slowdown = slowdown
-                elif i == 2:
+                elif i == c_index + 2:  # Rust
                     rust_fastq_pct = pct_of_c
                     rust_fastq_slowdown = slowdown
-                elif i == 3:
+                elif i == c_index + 3:  # BioPython
                     bio_fastq_pct = pct_of_c
                     bio_fastq_slowdown = slowdown
-                elif i == 4:
+                elif i == c_index + 4:  # Pure Python
                     pure_fastq_pct = pct_of_c
                     pure_fastq_slowdown = slowdown
 
@@ -276,8 +288,13 @@ def main():
     parser.add_argument(
         "--skip",
         action="append",
-        choices=["rust", "biopython", "c", "c_python", "pure"],
+        choices=["rust", "biopython", "c", "c_python", "pure", "cat", "wc"],
         help="Skip specific implementations",
+    )
+    parser.add_argument(
+        "--keep-data",
+        action="store_true",
+        help="Keep benchmark data files after completion (default: remove them)",
     )
 
     args = parser.parse_args()
@@ -300,6 +317,8 @@ def main():
 
     # Run benchmarks
     implementations = [
+        ("cat", "bench_cat.py"),
+        ("wc", "bench_wc.py"),
         ("c", "bench_c.py"),
         ("c_python", "bench_c_python.py"),
         ("rust", "bench_rust_python.py"),
@@ -330,6 +349,15 @@ def main():
         fasta_results if not args.fastq_only else [],
         fastq_results if not args.fasta_only else [],
     )
+
+    # Cleanup data if requested
+    if not args.keep_data:
+        import shutil
+        if args.data_dir.exists():
+            print(f"\nCleaning up benchmark data in {args.data_dir}/")
+            shutil.rmtree(args.data_dir)
+    else:
+        print(f"\nKeeping benchmark data in {args.data_dir}/")
 
 
 if __name__ == "__main__":

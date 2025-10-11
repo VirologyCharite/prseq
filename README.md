@@ -122,47 +122,57 @@ For complete API documentation, see:
 
 ## Benchmarks
 
-We benchmark prseq against BioPython, pure Python, a C implementation, and C
-with Python bindings to demonstrate performance characteristics. The benchmark
-generates synthetic FASTA and FASTQ files with 500,000 sequences ranging from
-100-20,000 bases each, then measures throughput (MB/s) for parsing.
+We benchmark prseq against BioPython, pure Python, a C implementation, C with
+Python bindings, and UNIX utilities (cat and wc) to demonstrate performance
+characteristics. The benchmark generates synthetic FASTA and FASTQ files with
+500,000 sequences ranging from 100-20,000 bases each, then measures throughput
+(MB/s) for parsing.
 
 **Test Configuration:**
 - 500,000 sequences per file
 - Sequence lengths: 100-20,000 bases
-- FASTA file: ~4.8 GB
-- FASTQ file: ~9.6 GB
+- FASTA file: ~4.9 GB
+- FASTQ file: ~9.7 GB
 
 **Results:**
 
 **FASTA Benchmarks:**
 | Implementation | Throughput | % of C | Slowdown |
 |----------------|------------|--------|----------|
-| C | 1,321.14 MB/s | 100.0% | 1.00x |
-| Rust/Python (prseq) | 1,256.25 MB/s | 95.1% | 1.05x |
-| C/Python | 1,184.31 MB/s | 89.6% | 1.12x |
-| BioPython | 627.00 MB/s | 47.5% | 2.11x |
-| Pure Python | 591.11 MB/s | 44.7% | 2.24x |
+| cat > /dev/null | 13,006.82 MB/s | 990.3% | 0.10x |
+| wc -l | 1,040.41 MB/s | 79.2% | 1.26x |
+| C | 1,313.47 MB/s | 100.0% | 1.00x |
+| Rust/Python (prseq) | 1,234.85 MB/s | 94.0% | 1.06x |
+| C/Python | 1,171.45 MB/s | 89.2% | 1.12x |
+| BioPython | 610.52 MB/s | 46.5% | 2.15x |
+| Pure Python | 580.90 MB/s | 44.2% | 2.26x |
 
 **FASTQ Benchmarks:**
 | Implementation | Throughput | % of C | Slowdown |
 |----------------|------------|--------|----------|
-| C | 677.47 MB/s | 100.0% | 1.00x |
-| Rust/Python (prseq) | 633.33 MB/s | 93.5% | 1.07x |
-| C/Python | 602.38 MB/s | 88.9% | 1.12x |
-| BioPython | 160.06 MB/s | 23.6% | 4.23x |
-| Pure Python | 268.67 MB/s | 39.7% | 2.52x |
+| cat > /dev/null | 13,103.47 MB/s | 1973.9% | 0.05x |
+| wc -l | 1,042.84 MB/s | 157.1% | 0.64x |
+| C | 663.83 MB/s | 100.0% | 1.00x |
+| Rust/Python (prseq) | 617.40 MB/s | 93.0% | 1.08x |
+| C/Python | 587.09 MB/s | 88.4% | 1.13x |
+| BioPython | 156.64 MB/s | 23.6% | 4.24x |
+| Pure Python | 266.48 MB/s | 40.1% | 2.49x |
 
 **Key findings:**
-- **Rust/Python (prseq)**: Achieves 95.1% of C speed for FASTA and 93.5% for
+- **cat**: Raw I/O baseline at ~13 GB/s shows the theoretical maximum for file
+  reading without any parsing
+- **wc -l**: Simple line counting provides a minimal parsing baseline,
+  outperforming dedicated parsers for FASTQ (157.1% of C) where line-based
+  format is simpler
+- **Rust/Python (prseq)**: Achieves 94.0% of C speed for FASTA and 93.0% for
   FASTQ, providing near-native performance with memory safety and Python
   integration
-- **C/Python**: Achieves 89.6% of C speed for FASTA and 88.9% for FASTQ (1.12x
+- **C/Python**: Achieves 89.2% of C speed for FASTA and 88.4% for FASTQ (1.12x
   slower), showing the overhead of Python C extension bindings
-- **BioPython**: 47.5% of C speed for FASTA (2.11x slower), 23.6% for FASTQ
-  (4.23x slower)
-- **Pure Python**: 44.7% of C speed for FASTA (2.24x slower), 39.7% for FASTQ
-  (2.52x slower)
+- **BioPython**: 46.5% of C speed for FASTA (2.15x slower), 23.6% for FASTQ
+  (4.24x slower)
+- **Pure Python**: 44.2% of C speed for FASTA (2.26x slower), 40.1% for FASTQ
+  (2.49x slower)
 
 To run benchmarks yourself:
 ```bash
