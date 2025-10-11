@@ -85,19 +85,23 @@ def benchmark_fasta(filepath: Path) -> dict:
     start = time.perf_counter()
 
     count = 0
-    total_bases = 0
+    sequence_bases = 0
 
     for record in read_fasta(filepath):
         count += 1
-        total_bases += len(record.sequence)
+        sequence_bases += len(record.sequence)
 
     elapsed = time.perf_counter() - start
 
+    # Use file size for throughput calculation
+    file_size = filepath.stat().st_size
+
     return {
         'count': count,
-        'total_bases': total_bases,
+        'total_bases': file_size,
+        'sequence_bases': sequence_bases,
         'elapsed': elapsed,
-        'throughput_mb_s': (total_bases / 1024 / 1024) / elapsed if elapsed > 0 else 0
+        'throughput_mb_s': (file_size / 1024 / 1024) / elapsed if elapsed > 0 else 0
     }
 
 
@@ -106,19 +110,23 @@ def benchmark_fastq(filepath: Path) -> dict:
     start = time.perf_counter()
 
     count = 0
-    total_bases = 0
+    sequence_bases = 0
 
     for record in read_fastq(filepath):
         count += 1
-        total_bases += len(record.sequence)
+        sequence_bases += len(record.sequence)
 
     elapsed = time.perf_counter() - start
 
+    # Use file size for throughput calculation
+    file_size = filepath.stat().st_size
+
     return {
         'count': count,
-        'total_bases': total_bases,
+        'total_bases': file_size,
+        'sequence_bases': sequence_bases,
         'elapsed': elapsed,
-        'throughput_mb_s': (total_bases / 1024 / 1024) / elapsed if elapsed > 0 else 0
+        'throughput_mb_s': (file_size / 1024 / 1024) / elapsed if elapsed > 0 else 0
     }
 
 

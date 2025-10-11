@@ -67,6 +67,9 @@ def run_benchmark(script: Path, datafile: Path, size_hint: int = None) -> dict:
         print(f"Error running {script.name}: {result.stderr}", file=sys.stderr)
         return None
 
+    # Print raw output for debugging
+    print(result.stdout)
+
     # Parse output
     lines = result.stdout.strip().split("\n")
     name = lines[0] if lines else "Unknown"
@@ -119,7 +122,7 @@ def print_results(fasta_results: list, fastq_results: list):
         print("\nFASTA Benchmarks:")
         print("-" * 120)
         print(
-            f"{'Implementation':<20} {'Sequences':>12} {'Bases':>15} {'Time (s)':>10} {'Throughput':>15} {'% of C':>10} {'Slowdown':>10}"
+            f"{'Implementation':<20} {'Sequences':>12} {'Bases':>15} {'Time (s)':>10} {'Throughput':>15} {'% of C':>10} {'Slowdown':>11}"
         )
         print("-" * 120)
 
@@ -161,14 +164,14 @@ def print_results(fasta_results: list, fastq_results: list):
                     f"{result.get('time', 0):>10.3f} "
                     f"{throughput:>12.2f} MB/s "
                     f"{pct_of_c:>9.1f}% "
-                    f"{slowdown:>9.2f}x"
+                    f"{slowdown:>10.3f}x"
                 )
 
     if fastq_results:
         print("\nFASTQ Benchmarks:")
         print("-" * 120)
         print(
-            f"{'Implementation':<20} {'Sequences':>12} {'Bases':>15} {'Time (s)':>10} {'Throughput':>15} {'% of C':>10} {'Slowdown':>10}"
+            f"{'Implementation':<20} {'Sequences':>12} {'Bases':>15} {'Time (s)':>10} {'Throughput':>15} {'% of C':>10} {'Slowdown':>11}"
         )
         print("-" * 120)
 
@@ -210,7 +213,7 @@ def print_results(fasta_results: list, fastq_results: list):
                     f"{result.get('time', 0):>10.3f} "
                     f"{throughput:>12.2f} MB/s "
                     f"{pct_of_c:>9.1f}% "
-                    f"{slowdown:>9.2f}x"
+                    f"{slowdown:>10.3f}x"
                 )
 
     print("=" * 120)
@@ -220,22 +223,22 @@ def print_results(fasta_results: list, fastq_results: list):
     if fasta_results and c_python_fasta_pct > 0:
         print(
             f"- C/Python: {c_python_fasta_pct:.1f}% of C speed for FASTA, "
-            f"{c_python_fastq_pct:.1f}% for FASTQ ({c_python_fasta_slowdown:.2f}x slower)"
+            f"{c_python_fastq_pct:.1f}% for FASTQ ({c_python_fasta_slowdown:.3f}x slower)"
         )
     if fasta_results and rust_fasta_pct > 0:
         print(
             f"- Rust/Python (prseq): {rust_fasta_pct:.1f}% of C speed for FASTA, "
-            f"{rust_fastq_pct:.1f}% for FASTQ ({rust_fasta_slowdown:.2f}x slower)"
+            f"{rust_fastq_pct:.1f}% for FASTQ ({rust_fasta_slowdown:.3f}x slower)"
         )
     if fastq_results and bio_fasta_pct > 0:
         print(
-            f"- BioPython: {bio_fasta_pct:.1f}% of C speed for FASTA ({bio_fasta_slowdown:.2f}x slower), "
-            f"{bio_fastq_pct:.1f}% for FASTQ ({bio_fastq_slowdown:.2f}x slower)"
+            f"- BioPython: {bio_fasta_pct:.1f}% of C speed for FASTA ({bio_fasta_slowdown:.3f}x slower), "
+            f"{bio_fastq_pct:.1f}% for FASTQ ({bio_fastq_slowdown:.3f}x slower)"
         )
     if fasta_results and pure_fasta_pct > 0:
         print(
-            f"- Pure Python: {pure_fasta_pct:.1f}% of C speed for FASTA ({pure_fasta_slowdown:.2f}x slower), "
-            f"{pure_fastq_pct:.1f}% for FASTQ ({pure_fastq_slowdown:.2f}x slower)"
+            f"- Pure Python: {pure_fasta_pct:.1f}% of C speed for FASTA ({pure_fasta_slowdown:.3f}x slower), "
+            f"{pure_fastq_pct:.1f}% for FASTQ ({pure_fastq_slowdown:.3f}x slower)"
         )
 
 

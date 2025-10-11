@@ -55,11 +55,15 @@ def benchmark_file(filepath: Path, executable: Path) -> dict:
                 except ValueError:
                     pass
 
+    # Use file size for throughput calculation
+    file_size = filepath.stat().st_size
+
     return {
         'count': count,
-        'total_bases': total_bases,
+        'total_bases': file_size,
+        'sequence_bases': total_bases,
         'elapsed': elapsed,
-        'throughput_mb_s': (total_bases / 1024 / 1024) / elapsed if elapsed > 0 else 0
+        'throughput_mb_s': (file_size / 1024 / 1024) / elapsed if elapsed > 0 else 0
     }
 
 
@@ -90,6 +94,10 @@ def main():
         sys.exit(1)
 
     results = benchmark_file(filepath, executable)
+
+    # Print extra info for debugging
+    if 'sequence_bases' in results:
+        print(f"  Sequence bases: {results['sequence_bases']:,}", file=sys.stderr)
 
     # Print results
     print(f"C")
