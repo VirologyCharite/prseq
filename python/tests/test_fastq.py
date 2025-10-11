@@ -62,7 +62,7 @@ def test_fastq_reader_iterator() -> None:
     """Test iterating over FASTQ records."""
     fastq_file = create_test_fastq()
     try:
-        reader = FastqReader.from_file(str(fastq_file))
+        reader = FastqReader(str(fastq_file))
         records: list[FastqRecord] = list(reader)
 
         assert len(records) == 3
@@ -126,7 +126,7 @@ def test_gzip_compression() -> None:
     """Test reading gzip-compressed FASTQ files."""
     fastq_file = create_compressed_test_fastq('gzip')
     try:
-        reader = FastqReader.from_file(str(fastq_file))
+        reader = FastqReader(str(fastq_file))
         records = list(reader)
 
         assert len(records) == 2
@@ -144,7 +144,7 @@ def test_bzip2_compression() -> None:
     """Test reading bzip2-compressed FASTQ files."""
     fastq_file = create_compressed_test_fastq('bzip2')
     try:
-        reader = FastqReader.from_file(str(fastq_file))
+        reader = FastqReader(str(fastq_file))
         records = list(reader)
 
         assert len(records) == 2
@@ -155,9 +155,9 @@ def test_bzip2_compression() -> None:
         fastq_file.unlink()
 
 
-def test_from_stdin_class_method() -> None:
-    """Test the from_stdin class method."""
-    reader = FastqReader.from_stdin()
+def test_from_stdin_simplified_api() -> None:
+    """Test creating reader for stdin with simplified API."""
+    reader = FastqReader()  # None = stdin
     assert reader is not None
     assert hasattr(reader, '_reader')
 
@@ -165,7 +165,7 @@ def test_from_stdin_class_method() -> None:
 def test_file_not_found() -> None:
     """Test error handling for missing files."""
     with pytest.raises(IOError):
-        list(FastqReader.from_file("nonexistent_file.fastq"))
+        list(FastqReader("nonexistent_file.fastq"))
 
 
 def test_file_object_with_open() -> None:
@@ -173,7 +173,7 @@ def test_file_object_with_open() -> None:
     fastq_file = create_test_fastq()
     try:
         with open(fastq_file, 'rb') as f:
-            reader = FastqReader(file=f)
+            reader = FastqReader(f)
             records: list[FastqRecord] = list(reader)
 
         assert len(records) == 3
@@ -187,27 +187,12 @@ def test_file_object_with_open() -> None:
         fastq_file.unlink()
 
 
-def test_file_object_with_from_file_object() -> None:
-    """Test reading from a file object using the from_file_object class method."""
-    fastq_file = create_test_fastq()
-    try:
-        with open(fastq_file, 'rb') as f:
-            reader = FastqReader.from_file_object(f)
-            records: list[FastqRecord] = list(reader)
-
-        assert len(records) == 3
-        assert records[0].id == "seq1 test sequence"
-        assert records[0].sequence == "ATCGGATCCTAG"
-    finally:
-        fastq_file.unlink()
-
-
 def test_file_object_gzip_compressed() -> None:
     """Test reading from a gzip-compressed file object."""
     fastq_file = create_compressed_test_fastq("gzip")
     try:
         with open(fastq_file, 'rb') as f:
-            reader = FastqReader(file=f)
+            reader = FastqReader(f)
             records: list[FastqRecord] = list(reader)
 
         assert len(records) == 2
@@ -235,7 +220,7 @@ GGCCTTAA
 JJJJJJJJ
 """
     file_obj = BytesIO(fastq_content)
-    reader = FastqReader(file=file_obj)
+    reader = FastqReader(file_obj)
     records: list[FastqRecord] = list(reader)
 
     assert len(records) == 2
@@ -247,12 +232,12 @@ JJJJJJJJ
     assert records[1].quality == "JJJJJJJJ"
 
 
-def test_file_object_and_path_error() -> None:
-    """Test that providing both file and path raises an error."""
+def test_file_object_text_mode_error() -> None:
+    """Test that opening a file in text mode raises a clear error."""
     fastq_file = create_test_fastq()
     try:
-        with open(fastq_file, 'rb') as f:
-            with pytest.raises(IOError, match="Cannot specify both path and file"):
-                FastqReader(path=str(fastq_file), file=f)
+        with open(fastq_file, 'r') as f:  # Text mode, not binary
+            with pytest.raises(IOError, match="binary mode"):
+                FastqReader(f)
     finally:
         fastq_file.unlink()

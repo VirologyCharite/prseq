@@ -64,6 +64,7 @@ gunzip -c reads.fastq.gz | fastq-filter 75
 
 ```python
 import prseq
+from pathlib import Path
 
 # FASTA files
 records = prseq.read_fasta("sequences.fasta")
@@ -75,14 +76,22 @@ records = prseq.read_fastq("reads.fastq")
 for record in records:
     print(f"{record.id}: {len(record.sequence)} bp, quality: {len(record.quality)}")
 
-# Streaming for large files
-for record in prseq.FastaReader.from_file("large.fasta"):
+# Streaming for large files - accepts str, Path, file object, or None
+for record in prseq.FastaReader("large.fasta"):  # String path
     if len(record.sequence) > 1000:
         print(f"Long sequence: {record.id}")
 
-# Works with stdin too
-for record in prseq.FastqReader.from_stdin():
+for record in prseq.FastaReader(Path("large.fasta")):  # Path object
+    print(f"{record.id}")
+
+# Read from stdin
+for record in prseq.FastqReader():  # None = stdin
     print(f"Read: {record.id}")
+
+# Read from file object (must use binary mode 'rb')
+with open("sequences.fasta", "rb") as f:
+    for record in prseq.FastaReader(f):
+        print(f"{record.id}")
 ```
 
 ## Python API Reference
@@ -90,6 +99,7 @@ for record in prseq.FastqReader.from_stdin():
 ### FASTA Support
 
 ```python
+from pathlib import Path
 from prseq import FastaRecord, FastaReader, read_fasta
 
 # FastaRecord - represents a single sequence
@@ -102,21 +112,29 @@ records = read_fasta("file.fasta")
 records = read_fasta("file.fasta.gz")  # Auto-detects compression
 records = read_fasta(None)  # Read from stdin
 
-# Stream records (memory efficient)
-reader = FastaReader.from_file("large.fasta")
-reader = FastaReader.from_stdin()
+# Stream records (memory efficient) - source can be:
+# - str: file path
+# - Path: pathlib.Path object
+# - file object: open file in binary mode
+# - None: read from stdin
 
-for record in reader:
-    # Process one record at a time
-    print(f"{record.id}: {len(record.sequence)}")
+reader = FastaReader("large.fasta")  # String path
+reader = FastaReader(Path("large.fasta"))  # Path object
+reader = FastaReader()  # None = stdin
+
+with open("file.fasta", "rb") as f:  # Binary mode required
+    reader = FastaReader(f)  # File object
+    for record in reader:
+        print(f"{record.id}: {len(record.sequence)}")
 
 # Performance tuning
-reader = FastaReader.from_file("file.fasta", sequence_size_hint=50000)
+reader = FastaReader("file.fasta", sequence_size_hint=50000)
 ```
 
 ### FASTQ Support
 
 ```python
+from pathlib import Path
 from prseq import FastqRecord, FastqReader, read_fastq
 
 # FastqRecord - represents a single read
@@ -130,18 +148,26 @@ records = read_fastq("reads.fastq")
 records = read_fastq("reads.fastq.bz2")  # Auto-detects compression
 records = read_fastq(None)  # Read from stdin
 
-# Stream records (memory efficient)
-reader = FastqReader.from_file("large.fastq")
-reader = FastqReader.from_stdin()
+# Stream records (memory efficient) - source can be:
+# - str: file path
+# - Path: pathlib.Path object
+# - file object: open file in binary mode
+# - None: read from stdin
 
-for record in reader:
-    # Validate quality length matches sequence
-    assert len(record.sequence) == len(record.quality)
-    print(f"{record.id}: {len(record.sequence)} bp")
+reader = FastqReader("large.fastq")  # String path
+reader = FastqReader(Path("large.fastq"))  # Path object
+reader = FastqReader()  # None = stdin
+
+with open("reads.fastq", "rb") as f:  # Binary mode required
+    reader = FastqReader(f)  # File object
+    for record in reader:
+        # Validate quality length matches sequence
+        assert len(record.sequence) == len(record.quality)
+        print(f"{record.id}: {len(record.sequence)} bp")
 
 # Performance tuning for short/long reads
-reader = FastqReader.from_file("reads.fastq", sequence_size_hint=150)  # Short reads
-reader = FastqReader.from_file("nanopore.fastq", sequence_size_hint=10000)  # Long reads
+reader = FastqReader("reads.fastq", sequence_size_hint=150)  # Short reads
+reader = FastqReader("nanopore.fastq", sequence_size_hint=10000)  # Long reads
 ```
 
 ### Advanced Usage
@@ -151,7 +177,7 @@ import prseq
 
 # Filter sequences by length
 def filter_by_length(filename, min_length):
-    for record in prseq.FastaReader.from_file(filename):
+    for record in prseq.FastaReader(filename):
         if len(record.sequence) >= min_length:
             yield record
 
@@ -167,7 +193,7 @@ avg_gc = sum(gc_content(r.sequence) for r in records) / len(records)
 # Convert FASTQ to FASTA
 def fastq_to_fasta(fastq_file, fasta_file):
     with open(fasta_file, 'w') as f:
-        for record in prseq.FastqReader.from_file(fastq_file):
+        for record in prseq.FastqReader(fastq_file):
             f.write(f">{record.id}\n{record.sequence}\n")
 ```
 

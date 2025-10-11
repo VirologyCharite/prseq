@@ -29,7 +29,13 @@ impl Read for PyFileReader {
             // Get the bytes returned
             let bytes: &Bound<PyBytes> = result
                 .downcast()
-                .map_err(|_| io::Error::new(io::ErrorKind::Other, "read() did not return bytes"))?;
+                .map_err(|_| {
+                    io::Error::new(
+                        io::ErrorKind::InvalidInput,
+                        "File must be opened in binary mode (use 'rb', not 'r'). \
+                         The read() method returned a string instead of bytes."
+                    )
+                })?;
 
             let data = bytes.as_bytes();
             let len = data.len();

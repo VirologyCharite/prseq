@@ -220,9 +220,7 @@ def fastq_stats() -> None:
         sys.exit(1)
 
     try:
-        reader = (
-            FastqReader.from_file(args.file) if args.file else FastqReader.from_stdin()
-        )
+        reader = FastqReader(args.file, sequence_size_hint=args.size_hint)
 
         total_seqs = 0
         total_length = 0
@@ -283,9 +281,7 @@ def fastq_filter() -> None:
         sys.exit(1)
 
     try:
-        reader = (
-            FastqReader.from_file(args.file) if args.file else FastqReader.from_stdin()
-        )
+        reader = FastqReader(args.file, sequence_size_hint=args.size_hint)
 
         kept = 0
         filtered = 0

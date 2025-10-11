@@ -1,5 +1,6 @@
 """FASTQ file parsing functionality."""
 
+from pathlib import Path
 from typing import Iterator
 
 import prseq._prseq as _prseq
@@ -25,52 +26,51 @@ class FastqRecord:
 class FastqReader:
     """Iterator for reading FASTQ records from a file, file object, or stdin.
 
-    Example:
-        >>> reader = FastqReader.from_file("sequences.fastq")  # Read from file
-        >>> reader = FastqReader.from_stdin()  # Read from stdin
+    Examples:
+        >>> reader = FastqReader("sequences.fastq")  # Read from file path (str)
+        >>> reader = FastqReader(Path("sequences.fastq"))  # Read from Path object
+        >>> reader = FastqReader()  # Read from stdin
         >>> with open("file.fastq", "rb") as f:
-        ...     reader = FastqReader(file=f)  # Read from file object
+        ...     reader = FastqReader(f)  # Read from file object
         >>> for record in reader:
         ...     print(f"{record.id}: {len(record.sequence)} bp")
     """
 
     def __init__(
         self,
-        path: str | None = None,
-        file: object | None = None,
+        source: str | Path | object | None = None,
         sequence_size_hint: int | None = None,
     ):
         """Create a new FASTQ reader.
 
         Args:
-            path: Path to the FASTQ file, or None/"-" for stdin. Files can be uncompressed,
-                  gzip-compressed (.gz), or bzip2-compressed (.bz2). Compression is
-                  automatically detected.
-            file: A Python file-like object opened in binary mode. If provided, path must be None.
+            source: Input source, can be:
+                - str or Path: Path to a FASTQ file (uncompressed, .gz, or .bz2)
+                - file object: An open file-like object in binary mode ('rb')
+                - None or "-": Read from stdin
             sequence_size_hint: Optional hint for expected sequence length in characters.
                               Helps optimize memory allocation.
 
         Raises:
             FileNotFoundError: If the file doesn't exist
-            IOError: If there's an error reading the file
-            ValueError: If both path and file are provided
+            IOError: If there's an error reading the file, or if a file object
+                    is opened in text mode instead of binary mode
+
+        Note:
+            File objects must be opened in binary mode ('rb'). Text mode ('r') will
+            raise an error. Example: `with open("reads.fastq", "rb") as f: ...`
         """
-        self._reader = _prseq.FastqReader(path=path, file=file, sequence_size_hint=sequence_size_hint)
-
-    @classmethod
-    def from_file(cls, path: str, sequence_size_hint: int | None = None) -> 'FastqReader':
-        """Create a FastqReader from a file path."""
-        return cls(path=path, sequence_size_hint=sequence_size_hint)
-
-    @classmethod
-    def from_file_object(cls, file: object, sequence_size_hint: int | None = None) -> 'FastqReader':
-        """Create a FastqReader from a Python file-like object."""
-        return cls(file=file, sequence_size_hint=sequence_size_hint)
-
-    @classmethod
-    def from_stdin(cls, sequence_size_hint: int | None = None) -> 'FastqReader':
-        """Create a FastqReader from stdin."""
-        return cls(path=None, sequence_size_hint=sequence_size_hint)
+        if isinstance(source, (str, Path)):
+            # String or Path object - treat as file path
+            self._reader = _prseq.FastqReader(path=str(source), file=None, sequence_size_hint=sequence_size_hint)
+        elif source is None:
+            # None - read from stdin
+            self._reader = _prseq.FastqReader(path=None, file=None, sequence_size_hint=sequence_size_hint)
+        elif hasattr(source, 'read'):
+            # File-like object with read() method
+            self._reader = _prseq.FastqReader(path=None, file=source, sequence_size_hint=sequence_size_hint)
+        else:
+            raise TypeError(f"source must be a str, Path, file object, or None, not {type(source).__name__}")
 
     def __iter__(self) -> Iterator[FastqRecord]:
         return self

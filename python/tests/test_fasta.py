@@ -256,9 +256,9 @@ print(f"{records[0].sequence}")
     assert lines[2] == "ATCGATCG"
 
 
-def test_from_stdin_class_method() -> None:
-    """Test using the from_stdin class method."""
-    fasta_content = """>seq1 class method test
+def test_from_stdin_simplified_api() -> None:
+    """Test reading from stdin with simplified API."""
+    fasta_content = """>seq1 stdin test
 ATCGATCG
 """
     # Use subprocess to simulate stdin input
@@ -266,7 +266,7 @@ ATCGATCG
         [sys.executable, "-c", """
 import sys
 from prseq.fasta import FastaReader
-records = list(FastaReader.from_stdin())
+records = list(FastaReader())  # None = stdin
 print(f"{len(records)}")
 print(f"{records[0].id}")
 """],
@@ -278,7 +278,7 @@ print(f"{records[0].id}")
     assert result.returncode == 0
     lines = result.stdout.strip().split('\n')
     assert lines[0] == "1"  # 1 record
-    assert lines[1] == "seq1 class method test"
+    assert lines[1] == "seq1 stdin test"
 
 
 def test_file_object_with_open() -> None:
@@ -286,7 +286,7 @@ def test_file_object_with_open() -> None:
     fasta_file = create_test_fasta_multiline()
     try:
         with open(fasta_file, 'rb') as f:
-            reader = FastaReader(file=f)
+            reader = FastaReader(f)
             records: list[FastaRecord] = list(reader)
 
         assert len(records) == 2
@@ -298,27 +298,12 @@ def test_file_object_with_open() -> None:
         fasta_file.unlink()
 
 
-def test_file_object_with_from_file_object() -> None:
-    """Test reading from a file object using the from_file_object class method."""
-    fasta_file = create_test_fasta_multiline()
-    try:
-        with open(fasta_file, 'rb') as f:
-            reader = FastaReader.from_file_object(f)
-            records: list[FastaRecord] = list(reader)
-
-        assert len(records) == 2
-        assert records[0].id == "seq1 description one"
-        assert records[0].sequence == "ATCGATCGGCTAGCTA"
-    finally:
-        fasta_file.unlink()
-
-
 def test_file_object_gzip_compressed() -> None:
     """Test reading from a gzip-compressed file object."""
     fasta_file = create_compressed_test_fasta("gzip")
     try:
         with open(fasta_file, 'rb') as f:
-            reader = FastaReader(file=f)
+            reader = FastaReader(f)
             records: list[FastaRecord] = list(reader)
 
         assert len(records) == 2
@@ -340,7 +325,7 @@ ATCGATCG
 GGGGCCCC
 """
     file_obj = BytesIO(fasta_content)
-    reader = FastaReader(file=file_obj)
+    reader = FastaReader(file_obj)
     records: list[FastaRecord] = list(reader)
 
     assert len(records) == 2
@@ -350,13 +335,13 @@ GGGGCCCC
     assert records[1].sequence == "GGGGCCCC"
 
 
-def test_file_object_and_path_error() -> None:
-    """Test that providing both file and path raises an error."""
+def test_file_object_text_mode_error() -> None:
+    """Test that opening a file in text mode raises a clear error."""
     fasta_file = create_test_fasta_multiline()
     try:
-        with open(fasta_file, 'rb') as f:
-            with pytest.raises(IOError, match="Cannot specify both path and file"):
-                FastaReader(path=str(fasta_file), file=f)
+        with open(fasta_file, 'r') as f:  # Text mode, not binary
+            with pytest.raises(IOError, match="binary mode"):
+                FastaReader(f)
     finally:
         fasta_file.unlink()
 
