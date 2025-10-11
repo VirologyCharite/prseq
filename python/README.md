@@ -4,7 +4,7 @@ Python tools for sequence analysis, powered by Rust.
 
 [![PyPI](https://img.shields.io/pypi/v/prseq.svg)](https://pypi.org/project/prseq/)
 [![Python Version](https://img.shields.io/pypi/pyversions/prseq.svg)](https://pypi.org/project/prseq/)
-[![Build Status](https://img.shields.io/github/actions/workflow/status/VirologyCharite/prseq/ci.yml?branch=main)](https://github.com/VirologyCharite/prseq/actions)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/virologieCharite/prseq/workflow.yaml?branch=main)](https://github.com/virologieCharite/prseq/actions)
 [![Downloads](https://img.shields.io/pypi/dm/prseq.svg)](https://pypi.org/project/prseq/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
