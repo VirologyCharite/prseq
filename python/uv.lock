@@ -268,7 +268,7 @@ wheels = [
 
 [[package]]
 name = "prseq"
-version = "0.0.17"
+version = "0.0.18"
 source = { editable = "." }
 
 [package.dev-dependencies]
