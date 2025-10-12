@@ -1,4 +1,5 @@
 import os
+import io
 from pathlib import Path
 from typing import BinaryIO
 import builtins
@@ -40,6 +41,12 @@ def parse_args(source: str | Path | BinaryIO | None) -> tuple[str | None, Binary
         return None, None
 
     if hasattr(source, "read"):
+        if isinstance(source, io.TextIOBase):
+            raise IOError("file object was not opened in binary mode. Use mode='rb'.")
+
+        # Sanity check.
+        assert isinstance(source, (io.BufferedIOBase, io.RawIOBase))
+
         return None, source
 
     raise TypeError(
