@@ -1,7 +1,7 @@
 from .fasta import FastaReader, FastaRecord, read_fasta
 from .fastq import FastqReader, FastqRecord, read_fastq
 
-__version__ = "0.0.26"
+__version__ = "0.0.27"
 __all__ = [
     "FastaRecord",
     "FastaReader",
