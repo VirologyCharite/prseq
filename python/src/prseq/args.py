@@ -44,9 +44,6 @@ def parse_args(source: str | Path | BinaryIO | None) -> tuple[str | None, Binary
         if isinstance(source, io.TextIOBase):
             raise IOError("file object was not opened in binary mode. Use mode='rb'.")
 
-        # Sanity check.
-        assert isinstance(source, (io.BufferedIOBase, io.RawIOBase, io.BytesIO))
-
         return None, source
 
     raise TypeError(
