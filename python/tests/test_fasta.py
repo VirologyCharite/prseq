@@ -356,7 +356,7 @@ def test_fasta_info_function() -> None:
     try:
         with patch('sys.argv', ['fasta-info', str(fasta_file)]):
             with patch('sys.stdout', new=StringIO()) as mock_stdout:
-                cli.info()
+                cli.fasta_info()
                 output = mock_stdout.getvalue()
 
                 assert "Number of sequences: 3" in output
@@ -371,7 +371,7 @@ def test_fasta_stats_function() -> None:
     try:
         with patch('sys.argv', ['fasta-stats', str(fasta_file)]):
             with patch('sys.stdout', new=StringIO()) as mock_stdout:
-                cli.stats()
+                cli.fasta_stats()
                 output = mock_stdout.getvalue()
 
                 assert "Total sequences: 3" in output
@@ -388,7 +388,7 @@ def test_fasta_filter_function() -> None:
         with patch('sys.argv', ['fasta-filter', '10', str(fasta_file)]):
             with patch('sys.stdout', new=StringIO()) as mock_stdout:
                 with patch('sys.stderr', new=StringIO()) as mock_stderr:
-                    cli.filter_cmd()
+                    cli.fasta_filter()
                     output = mock_stdout.getvalue()
                     stderr = mock_stderr.getvalue()
 

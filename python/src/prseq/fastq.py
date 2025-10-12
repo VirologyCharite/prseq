@@ -1,7 +1,8 @@
-"""FASTQ file parsing functionality."""
-
+import os
 from pathlib import Path
-from typing import Iterator
+from typing import Iterator, BinaryIO
+
+from .args import parse_args
 
 import prseq._prseq as _prseq
 
@@ -20,7 +21,11 @@ class FastqRecord:
     def __eq__(self, other) -> bool:
         if not isinstance(other, FastqRecord):
             return False
-        return self.id == other.id and self.sequence == other.sequence and self.quality == other.quality
+        return (
+            self.id == other.id
+            and self.sequence == other.sequence
+            and self.quality == other.quality
+        )
 
 
 class FastqReader:
@@ -38,7 +43,7 @@ class FastqReader:
 
     def __init__(
         self,
-        source: str | Path | object | None = None,
+        source: str | Path | BinaryIO | None = None,
         sequence_size_hint: int | None = None,
     ):
         """Create a new FASTQ reader.
@@ -58,19 +63,13 @@ class FastqReader:
 
         Note:
             File objects must be opened in binary mode ('rb'). Text mode ('r') will
-            raise an error. Example: `with open("reads.fastq", "rb") as f: ...`
+            raise an error.
         """
-        if isinstance(source, (str, Path)):
-            # String or Path object - treat as file path
-            self._reader = _prseq.FastqReader(path=str(source), file=None, sequence_size_hint=sequence_size_hint)
-        elif source is None:
-            # None - read from stdin
-            self._reader = _prseq.FastqReader(path=None, file=None, sequence_size_hint=sequence_size_hint)
-        elif hasattr(source, 'read'):
-            # File-like object with read() method
-            self._reader = _prseq.FastqReader(path=None, file=source, sequence_size_hint=sequence_size_hint)
-        else:
-            raise TypeError(f"source must be a str, Path, file object, or None, not {type(source).__name__}")
+        path, fp = parse_args(source)
+
+        self._reader = _prseq.FastqReader(
+            path=path, file=fp, sequence_size_hint=sequence_size_hint
+        )
 
     def __iter__(self) -> Iterator[FastqRecord]:
         return self
@@ -78,18 +77,21 @@ class FastqReader:
     def __next__(self) -> FastqRecord:
         try:
             rust_record = next(self._reader)
-            return FastqRecord(rust_record.id, rust_record.sequence, rust_record.quality)
+            return FastqRecord(
+                rust_record.id, rust_record.sequence, rust_record.quality
+            )
         except StopIteration:
             raise
 
 
-def read_fastq(path: str | None = None, sequence_size_hint: int | None = None) -> list[FastqRecord]:
+def read_fastq(
+    path: str | Path | None = None, sequence_size_hint: int | None = None
+) -> list[FastqRecord]:
     """Read all FASTQ records from a file into a list."""
-    if path is None or path == "-":
-        # Read from stdin - use iterator since we don't have stdin convenience functions
-        reader = FastqReader.from_stdin(sequence_size_hint)
-        return list(reader)
+    if path is None or str(path) == "-":
+        # Read from stdin.
+        return list(FastqReader(sequence_size_hint=sequence_size_hint))
     else:
-        # Read from file - use efficient Rust convenience functions
+        # Read from file - use efficient Rust convenience functions.
         rust_records = _prseq.read_fastq(path, sequence_size_hint)
         return [FastqRecord(r.id, r.sequence, r.quality) for r in rust_records]

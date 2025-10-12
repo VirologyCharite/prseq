@@ -1,7 +1,7 @@
-"""FASTA file parsing functionality."""
-
 from pathlib import Path
-from typing import Iterator, NamedTuple
+from typing import Iterator, NamedTuple, BinaryIO
+
+from .args import parse_args
 
 import prseq._prseq as _prseq
 
@@ -13,6 +13,7 @@ class FastaRecord(NamedTuple):
         id: The sequence identifier (without the '>' prefix)
         sequence: The sequence data
     """
+
     id: str
     sequence: str
 
@@ -32,7 +33,7 @@ class FastaReader:
 
     def __init__(
         self,
-        source: str | Path | object | None = None,
+        source: str | Path | BinaryIO | None = None,
         sequence_size_hint: int | None = None,
     ) -> None:
         """Create a new FASTA reader.
@@ -56,17 +57,12 @@ class FastaReader:
             File objects must be opened in binary mode ('rb'). Text mode ('r') will
             raise an error. Example: `with open("file.fasta", "rb") as f: ...`
         """
-        if isinstance(source, (str, Path)):
-            # String or Path object - treat as file path
-            self._reader = _prseq.FastaReader(path=str(source), file=None, sequence_size_hint=sequence_size_hint)
-        elif source is None:
-            # None - read from stdin
-            self._reader = _prseq.FastaReader(path=None, file=None, sequence_size_hint=sequence_size_hint)
-        elif hasattr(source, 'read'):
-            # File-like object with read() method
-            self._reader = _prseq.FastaReader(path=None, file=source, sequence_size_hint=sequence_size_hint)
-        else:
-            raise TypeError(f"source must be a str, Path, file object, or None, not {type(source).__name__}")
+
+        path, fp = parse_args(source)
+
+        self._reader = _prseq.FastaReader(
+            path=path, file=fp, sequence_size_hint=sequence_size_hint
+        )
 
     def __iter__(self) -> Iterator[FastaRecord]:
         return self
@@ -81,5 +77,10 @@ class FastaReader:
 
 def read_fasta(path: str, sequence_size_hint: int | None = None) -> list[FastaRecord]:
     """Read all FASTA records from a file into a list."""
-    rust_records = _prseq.read_fasta(path, sequence_size_hint)
-    return [FastaRecord(r.id, r.sequence) for r in rust_records]
+    if path is None or str(path) == "-":
+        # Read from stdin.
+        return list(FastaReader(sequence_size_hint=sequence_size_hint))
+    else:
+        # Read from file - use efficient Rust convenience functions.
+        rust_records = _prseq.read_fasta(path, sequence_size_hint)
+        return [FastaRecord(r.id, r.sequence) for r in rust_records]

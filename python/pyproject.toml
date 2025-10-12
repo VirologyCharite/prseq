@@ -25,9 +25,9 @@ Homepage = "https://github.com/virologieCharite/prseq"
 Repository = "https://github.com/virologieCharite/prseq"
 
 [project.scripts]
-fasta-info = "prseq.cli:info"
-fasta-stats = "prseq.cli:stats"
-fasta-filter = "prseq.cli:filter_cmd"
+fasta-info = "prseq.cli:fasta_info"
+fasta-stats = "prseq.cli:fasta_stats"
+fasta-filter = "prseq.cli:fasta_filter"
 fastq-info = "prseq.cli:fastq_info"
 fastq-stats = "prseq.cli:fastq_stats"
 fastq-filter = "prseq.cli:fastq_filter"

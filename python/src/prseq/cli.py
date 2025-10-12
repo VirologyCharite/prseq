@@ -6,7 +6,7 @@ from .fasta import FastaReader, read_fasta
 from .fastq import FastqReader, read_fastq
 
 
-def info() -> None:
+def fasta_info() -> None:
     """Display basic information about a FASTA file or stdin."""
     parser = argparse.ArgumentParser(
         prog="fasta-info",
@@ -47,7 +47,7 @@ def info() -> None:
         sys.exit(1)
 
 
-def stats() -> None:
+def fasta_stats() -> None:
     """Calculate statistics for sequences in a FASTA file or stdin."""
     parser = argparse.ArgumentParser(
         prog="fasta-stats",
@@ -106,7 +106,7 @@ def stats() -> None:
     print(f"  Max length: {max_length:,} bp")
 
 
-def filter_cmd() -> None:
+def fasta_filter() -> None:
     """Filter FASTA sequences by minimum length."""
     parser = argparse.ArgumentParser(
         prog="fasta-filter", description="Filter FASTA sequences by minimum length"
