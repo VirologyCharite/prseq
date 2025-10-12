@@ -1,6 +1,6 @@
 [project]
 name = "prseq"
-version = "0.0.27"
+version = "0.0.28"
 description = "Python tools (backed by Rust) for sequence analysis"
 authors = [
     {name = "Terry C. Jones", email = "terence.jones@charite.de"}
