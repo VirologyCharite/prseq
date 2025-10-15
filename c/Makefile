@@ -1,5 +1,7 @@
 CC = gcc
-CFLAGS = -O3 -Wall -Wextra -std=c99
+OPENSSL_PREFIX = $(shell brew --prefix openssl 2>/dev/null || echo "/usr")
+CFLAGS = -O3 -Wall -Wextra -std=c99 -I$(OPENSSL_PREFIX)/include
+LDFLAGS = -L$(OPENSSL_PREFIX)/lib -lssl -lcrypto
 
 FASTA_INFO = fasta_info.c
 FASTA_LIB = fasta_reader.c
@@ -24,10 +26,10 @@ python:
 	fi
 
 $(FASTA_TARGET): $(FASTA_LIB) $(FASTA_INFO) fasta_reader.h
-	$(CC) $(CFLAGS) -o $(FASTA_TARGET) $(FASTA_LIB) $(FASTA_INFO)
+	$(CC) $(CFLAGS) -o $(FASTA_TARGET) $(FASTA_LIB) $(FASTA_INFO) $(LDFLAGS)
 
 $(FASTQ_TARGET): $(FASTQ_LIB) $(FASTQ_INFO) fastq_reader.h
-	$(CC) $(CFLAGS) -o $(FASTQ_TARGET) $(FASTQ_LIB) $(FASTQ_INFO)
+	$(CC) $(CFLAGS) -o $(FASTQ_TARGET) $(FASTQ_LIB) $(FASTQ_INFO) $(LDFLAGS)
 
 $(TEST_TARGET): $(FASTA_LIB) $(TEST_SOURCE) fasta_reader.h
 	$(CC) $(CFLAGS) -o $(TEST_TARGET) $(FASTA_LIB) $(TEST_SOURCE)

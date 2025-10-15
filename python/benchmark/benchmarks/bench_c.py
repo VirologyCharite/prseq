@@ -26,6 +26,8 @@ def benchmark_file(filepath: Path, executable: Path) -> dict:
     # Parse output to extract stats
     count = 0
     total_bases = 0
+    id_checksum = None
+    seq_checksum = None
 
     for line in result.stdout.split('\n'):
         if 'sequences:' in line.lower():
@@ -54,6 +56,16 @@ def benchmark_file(filepath: Path, executable: Path) -> dict:
                     total_bases = int(parts[1].strip().split()[0].replace(',', ''))
                 except ValueError:
                     pass
+        elif 'id checksum' in line.lower():
+            # Extract ID checksum
+            parts = line.split(':')
+            if len(parts) == 2:
+                id_checksum = parts[1].strip()
+        elif 'sequence checksum' in line.lower():
+            # Extract sequence checksum
+            parts = line.split(':')
+            if len(parts) == 2:
+                seq_checksum = parts[1].strip()
 
     # Use file size for throughput calculation
     file_size = filepath.stat().st_size
@@ -63,7 +75,9 @@ def benchmark_file(filepath: Path, executable: Path) -> dict:
         'total_bases': file_size,
         'sequence_bases': total_bases,
         'elapsed': elapsed,
-        'throughput_mb_s': (file_size / 1024 / 1024) / elapsed if elapsed > 0 else 0
+        'throughput_mb_s': (file_size / 1024 / 1024) / elapsed if elapsed > 0 else 0,
+        'id_checksum': id_checksum,
+        'seq_checksum': seq_checksum
     }
 
 
@@ -105,6 +119,10 @@ def main():
     print(f"  Total bases: {results['total_bases']:,}")
     print(f"  Time: {results['elapsed']:.3f}s")
     print(f"  Throughput: {results['throughput_mb_s']:.2f} MB/s")
+    if results['id_checksum']:
+        print(f"  ID checksum (SHA256): {results['id_checksum']}")
+    if results['seq_checksum']:
+        print(f"  Sequence checksum (SHA256): {results['seq_checksum']}")
 
 
 if __name__ == "__main__":

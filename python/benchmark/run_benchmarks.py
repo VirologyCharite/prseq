@@ -91,6 +91,10 @@ def run_benchmark(
                 stats["time"] = float(value.rstrip("s"))
             elif "Throughput" in key:
                 stats["throughput"] = float(value.split()[0])
+            elif "ID checksum" in key:
+                stats["id_checksum"] = value
+            elif "Sequence checksum" in key:
+                stats["seq_checksum"] = value
 
     return {"name": name, **stats}
 
@@ -226,6 +230,70 @@ def print_results(fasta_results: list, fastq_results: list) -> None:
                 )
 
     print("=" * 120)
+
+    # Verify checksums match across implementations
+    print("\nChecksum verification:")
+    print("-" * 120)
+
+    # Collect all checksums for FASTA
+    if fasta_results:
+        fasta_id_checksums = {}
+        fasta_seq_checksums = {}
+        for result in fasta_results:
+            if result and result.get("id_checksum") and result.get("seq_checksum"):
+                name = result.get("name", "Unknown")
+                fasta_id_checksums[name] = result["id_checksum"]
+                fasta_seq_checksums[name] = result["seq_checksum"]
+
+        if fasta_id_checksums:
+            # Check if all ID checksums match
+            unique_id_checksums = set(fasta_id_checksums.values())
+            unique_seq_checksums = set(fasta_seq_checksums.values())
+
+            if len(unique_id_checksums) == 1:
+                print("✓ FASTA ID checksums match across all implementations")
+            else:
+                print("✗ FASTA ID checksums MISMATCH:")
+                for name, checksum in fasta_id_checksums.items():
+                    print(f"  {name}: {checksum}")
+
+            if len(unique_seq_checksums) == 1:
+                print("✓ FASTA sequence checksums match across all implementations")
+            else:
+                print("✗ FASTA sequence checksums MISMATCH:")
+                for name, checksum in fasta_seq_checksums.items():
+                    print(f"  {name}: {checksum}")
+
+    # Collect all checksums for FASTQ
+    if fastq_results:
+        fastq_id_checksums = {}
+        fastq_seq_checksums = {}
+        for result in fastq_results:
+            if result and result.get("id_checksum") and result.get("seq_checksum"):
+                name = result.get("name", "Unknown")
+                fastq_id_checksums[name] = result["id_checksum"]
+                fastq_seq_checksums[name] = result["seq_checksum"]
+
+        if fastq_id_checksums:
+            # Check if all ID checksums match
+            unique_id_checksums = set(fastq_id_checksums.values())
+            unique_seq_checksums = set(fastq_seq_checksums.values())
+
+            if len(unique_id_checksums) == 1:
+                print("✓ FASTQ ID checksums match across all implementations")
+            else:
+                print("✗ FASTQ ID checksums MISMATCH:")
+                for name, checksum in fastq_id_checksums.items():
+                    print(f"  {name}: {checksum}")
+
+            if len(unique_seq_checksums) == 1:
+                print("✓ FASTQ sequence checksums match across all implementations")
+            else:
+                print("✗ FASTQ sequence checksums MISMATCH:")
+                for name, checksum in fastq_seq_checksums.items():
+                    print(f"  {name}: {checksum}")
+
+    print("-" * 120)
 
     # Print key findings summary
     print("\nKey findings:")

@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <openssl/sha.h>
 #include "fastq_reader.h"
 
 int main(int argc, char *argv[]) {
@@ -31,10 +32,19 @@ int main(int argc, char *argv[]) {
     size_t max_len = 0;
     int result;
 
+    // Initialize SHA256 contexts for checksums
+    SHA256_CTX id_ctx, seq_ctx;
+    SHA256_Init(&id_ctx);
+    SHA256_Init(&seq_ctx);
+
     while ((result = fastq_read_next(fp, reader)) == 1) {
         count++;
         size_t seq_len = strlen(reader->sequence);
         total_bases += seq_len;
+
+        // Update checksums
+        SHA256_Update(&id_ctx, reader->id, strlen(reader->id));
+        SHA256_Update(&seq_ctx, reader->sequence, seq_len);
 
         if (count == 1 || seq_len < min_len) min_len = seq_len;
         if (count == 1 || seq_len > max_len) max_len = seq_len;
@@ -54,6 +64,12 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
+    // Finalize checksums
+    unsigned char id_hash[SHA256_DIGEST_LENGTH];
+    unsigned char seq_hash[SHA256_DIGEST_LENGTH];
+    SHA256_Final(id_hash, &id_ctx);
+    SHA256_Final(seq_hash, &seq_ctx);
+
     printf("Total sequences: %d\n", count);
     printf("Total bases: %zu\n", total_bases);
     if (count > 0) {
@@ -65,6 +81,20 @@ int main(int argc, char *argv[]) {
     if (elapsed > 0) {
         printf("Throughput: %.2f MB/s\n", (total_bases / 1024.0 / 1024.0) / elapsed);
     }
+
+    // Print ID checksum
+    printf("ID checksum (SHA256): ");
+    for (int i = 0; i < SHA256_DIGEST_LENGTH; i++) {
+        printf("%02x", id_hash[i]);
+    }
+    printf("\n");
+
+    // Print sequence checksum
+    printf("Sequence checksum (SHA256): ");
+    for (int i = 0; i < SHA256_DIGEST_LENGTH; i++) {
+        printf("%02x", seq_hash[i]);
+    }
+    printf("\n");
 
     fastq_reader_free(reader);
     fclose(fp);

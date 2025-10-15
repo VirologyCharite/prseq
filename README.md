@@ -173,6 +173,10 @@ characteristics. The benchmark generates synthetic FASTA and FASTQ files with
 - **Pure Python**: 47.3% of C speed for FASTA (2.113x slower), 43.6% for FASTQ
   (2.294x slower)
 
+**Checksum Verification:**
+
+All benchmark implementations compute SHA256 checksums of sequence IDs and sequences during reading. At the end of each benchmark run, checksums are compared across all implementations to verify they read identical data in identical order. This cryptographic verification ensures that performance comparisons are valid and that all implementations correctly parse the same files.
+
 To run benchmarks yourself:
 ```bash
 cd python/benchmark
