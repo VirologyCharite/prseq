@@ -1,6 +1,6 @@
 # prseq
 
-Python tools (backed by Rust) for sequence analysis.
+Rust with Python bindings for reading FASTA and FASTQ sequence files.
 
 [![Crates.io](https://img.shields.io/crates/v/prseq.svg)](https://crates.io/crates/prseq)
 [![PyPI](https://img.shields.io/pypi/v/prseq.svg)](https://pypi.org/project/prseq/)
@@ -11,12 +11,13 @@ Python tools (backed by Rust) for sequence analysis.
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 **prseq** combines the performance of Rust with the convenience of Python for
-bioinformatics sequence analysis. It provides:
+sequence analysis. It provides:
 
+- **Format support**: FASTA and FASTQ formats
 - **Memory efficient**: Streaming parsers with configurable buffer size
 - **CLI tools**: Command-line utilities for common tasks
-- **Input**: Handles file names, opened files, and stdin with compression detection (gzip, bzip2)
-- **Format support**: FASTA and FASTQ formats
+- **Input**: Handles file names, open files, and stdin
+- **Compression**: Automatic compression detection (gzip, bzip2)
 
 ## Language-Specific Documentation
 
