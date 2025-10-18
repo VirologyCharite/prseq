@@ -20,8 +20,12 @@ clean:
 	make -C python $@
 	make -C rust $@
 
-# bumpversion will make changes to five files, commit them, then tag with a
-# version like v0.0.12.
+# bumpversion will:
+#
+#   make changes to five files containing version numbers.
+#   commit them.
+#   tag with a version like v0.0.12.
+#
 bumpversion:
 	uv run bump2version patch
 

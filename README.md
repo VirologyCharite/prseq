@@ -10,25 +10,13 @@ Python tools (backed by Rust) for sequence analysis.
 [![Downloads](https://img.shields.io/pypi/dm/prseq.svg)](https://pypi.org/project/prseq/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-## ⚠️ Experimental Warning
+**prseq** combines the performance of Rust with the convenience of Python for
+bioinformatics sequence analysis. It provides:
 
-* This is highly experimental and should not be used in production yet!
-* The code here *will* change in backwards-incompatible ways.
-* Almost all the code (and tests) was written by claude.ai
-* Use at your own risk for now!
-
-## Why prseq?
-
-**prseq** combines the performance of Rust with the convenience of Python for bioinformatics sequence analysis. It provides:
-
-- **High Performance**: Rust-powered parsing with automatic compression detection (gzip, bzip2)
-- **Memory Efficient**: Streaming parsers with configurable buffer sizes
-- **Python Integration**: Pythonic APIs with full type hints
-- **CLI Tools**: Ready-to-use command-line utilities for common tasks
-- **Universal Input**: Seamlessly handles files, compressed files, and stdin
-- **Format Support**: FASTA and FASTQ formats with multi-line sequence support
-
-Perfect for processing large genomic datasets, building bioinformatics pipelines, or interactive analysis in Python.
+- **Memory efficient**: Streaming parsers with configurable buffer size
+- **CLI tools**: Command-line utilities for common tasks
+- **Input**: Handles file names, opened files, and stdin with compression detection (gzip, bzip2)
+- **Format support**: FASTA and FASTQ formats
 
 ## Language-Specific Documentation
 
@@ -64,15 +52,15 @@ maturin develop
 ```bash
 # Analyze a FASTA file
 fasta-info sequences.fasta
-fasta-stats sequences.fasta.gz  # Works with compressed files
-fasta-filter 100 sequences.fasta  # Keep sequences ≥100bp
+fasta-stats sequences.fasta.gz
+fasta-filter 100 sequences.fasta
 
 # Analyze a FASTQ file
 fastq-info reads.fastq
 fastq-stats reads.fastq.bz2
-fastq-filter 50 reads.fastq  # Keep sequences ≥50bp
+fastq-filter 50 reads.fastq
 
-# All tools support stdin
+# All tools support stdin and do compression detection
 cat sequences.fasta | fasta-stats
 gunzip -c reads.fastq.gz | fastq-filter 75
 ```
@@ -97,36 +85,32 @@ for record in prseq.FastaReader.from_file("large.fasta"):
     if len(record.sequence) > 1000:
         print(f"Long sequence: {record.id}")
 
-# Works with stdin too
-for record in prseq.FastqReader.from_stdin():
+# Read standard input
+for record in prseq.FastqReader():
     print(f"Read: {record.id}")
 ```
 
 For complete API documentation, see:
-- **[Python API Reference](python/README.md#python-api-reference)** - Detailed Python API with examples
+- **[Python API Reference](python/README.md#python-api-reference)** - Python API with examples
 - **[Rust API Reference](rust/README.md#rust-api-reference)** - Complete Rust documentation
 - **[CLI Tools](python/README.md#cli-tools)** - Command-line tool documentation
 
 ## Features
 
-- ✅ **FASTA and FASTQ parsing** with full format support
+- ✅ **FASTA and FASTQ parsing**
 - ✅ **Multi-line sequences** (FASTA-style wrapping in both formats)
 - ✅ **Automatic compression detection** (gzip, bzip2)
 - ✅ **Streaming parsers** for memory-efficient processing
 - ✅ **Stdin support** for pipeline integration
-- ✅ **Python and Rust APIs** with comprehensive type hints
-- ✅ **Command-line tools** for quick analysis
-- ✅ **Performance tuning** with configurable buffer sizes
-- ✅ **Comprehensive error handling** with clear messages
-- ✅ **Cross-platform** support (Linux, macOS, Windows)
+- ✅ **Cross-platform** supports (Linux, macOS, Windows)
+- ✅ **Python and Rust APIs**
 
 ## Benchmarks
 
 We benchmark prseq against BioPython, pure Python, a C implementation, C with
-Python bindings, and UNIX utilities (cat and wc) to demonstrate performance
-characteristics. The benchmark generates synthetic FASTA and FASTQ files with
-1,000,000 sequences ranging from 100-20,000 bases each, then measures throughput
-(MB/s) for parsing.
+Python bindings, and UNIX utilities (`cat` and `wc -l`) to demonstrate
+performance characteristics. The benchmark generates synthetic FASTA and
+FASTQ then measures throughput (MB/s) for parsing.
 
 **Test Configuration:**
 - 1,000,000 sequences per file
@@ -175,7 +159,11 @@ characteristics. The benchmark generates synthetic FASTA and FASTQ files with
 
 **Checksum Verification:**
 
-All benchmark implementations compute SHA256 checksums of sequence IDs and sequences during reading. At the end of each benchmark run, checksums are compared across all implementations to verify they read identical data in identical order. This cryptographic verification ensures that performance comparisons are valid and that all implementations correctly parse the same files.
+All benchmark implementations compute SHA256 checksums of sequence IDs and
+sequences during reading. At the end of each benchmark run, checksums are
+compared across all implementations to verify they read identical data in the
+identical order. This ensures that performance comparisons are valid and that
+all implementations correctly parse the same files in an identical way.
 
 To run benchmarks yourself:
 ```bash
@@ -201,10 +189,10 @@ cargo test
 cargo build --release
 
 # Python development
-cd ../python
+cd python
 pip install maturin
 maturin develop
-python -m pytest tests/ -v
+python -m pytest tests -v
 ```
 
 ### Running Tests
@@ -213,10 +201,10 @@ python -m pytest tests/ -v
 cd rust && cargo test
 
 # Python tests
-cd python && python -m pytest tests/ -v
+cd python && python -m pytest tests -v
 
 # Integration tests
-cd python && python -m pytest tests/ -v --integration
+cd python && python -m pytest tests -v --integration
 ```
 
 ### Project Layout
@@ -232,14 +220,23 @@ prseq/
 │   ├── tests/             # Rust unit tests
 │   └── Cargo.toml
 ├── python/                # Python package
+│   ├── benchmark/         # Benchmark suite
+│   │   └── benchmarks/
+│   │       ├── bench_biopython.py*
+│   │       ├── bench_c_python.py*
+│   │       ├── bench_c.py*
+│   │       ├── bench_cat.py*
+│   │       ├── bench_pure_python.py*
+│   │       ├── bench_rust_python.py*
+│   │       ├── bench_wc.py*
 │   ├── src/
-│   │   ├── lib.rs         # PyO3 Rust-Python bindings
+│   │   ├── lib.rs             # PyO3 Rust-Python bindings
 │   │   └── prseq/
 │   │       ├── __init__.py    # Package exports
 │   │       ├── fasta.py       # FASTA Python wrappers
 │   │       ├── fastq.py       # FASTQ Python wrappers
 │   │       └── cli.py         # Command-line interfaces
-│   ├── tests/             # Python tests
+│   ├── tests/                 # Python tests
 │   └── pyproject.toml
 └── README.md
 ```
@@ -253,21 +250,13 @@ prseq/
 5. Ensure all tests pass (`cargo test` and `pytest`)
 6. Commit your changes (`git commit -m 'Add amazing feature'`)
 7. Push to the branch (`git push origin feature/amazing-feature`)
-8. Open a Pull Request
+8. Open a pull Request
 
 ### Releasing
 
 ```bash
-# Update version numbers in:
-# - rust/Cargo.toml
-# - python/pyproject.toml
-# - python/src/prseq/__init__.py
-
-# Rust crate
-cd rust && cargo publish
-
-# Python package
-cd python && maturin publish
+# Commit your changes.
+make publish
 ```
 
 ## Format Support
@@ -287,11 +276,13 @@ cd python && maturin publish
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE)
+file for details.
 
 ## Acknowledgments
 
 - Built with [PyO3](https://pyo3.rs/) for Rust-Python integration
 - Uses [maturin](https://github.com/PyO3/maturin) for packaging
-- Compression support via [flate2](https://github.com/rust-lang/flate2-rs) and [bzip2](https://github.com/alexcrichton/bzip2-rs)
+- Compression support via [flate2](https://github.com/rust-lang/flate2-rs) and
+    [bzip2](https://github.com/alexcrichton/bzip2-rs)
 - Code almost entirely generated by [Claude AI](https://claude.ai/) 🤖
