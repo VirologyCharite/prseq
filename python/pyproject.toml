@@ -21,8 +21,8 @@ keywords = ["bioinformatics", "fasta", "fastq", "rust", "sequence-analysis"]
 
 
 [project.urls]
-Homepage = "https://github.com/virologieCharite/prseq"
-Repository = "https://github.com/virologieCharite/prseq"
+Homepage = "https://github.com/virologyCharite/prseq"
+Repository = "https://github.com/virologyCharite/prseq"
 
 [project.scripts]
 fasta-info = "prseq.cli:fasta_info"

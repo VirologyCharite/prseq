@@ -10,6 +10,15 @@ Rust with Python bindings for reading FASTA and FASTQ sequence files.
 [![Downloads](https://img.shields.io/pypi/dm/prseq.svg)](https://pypi.org/project/prseq/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
+## Status
+
+Note that the API and scripts of this package are certain to change in
+(probably minor but) incompatible ways. It should be easy to adjst your code
+to match such changes, but if you're not up for that please wait for the
+1.0.0 release.
+
+## Intro
+
 **prseq** combines the performance of Rust with the convenience of Python for
 sequence analysis. It provides:
 
