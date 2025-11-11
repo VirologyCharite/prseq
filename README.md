@@ -13,7 +13,7 @@ Rust with Python bindings for reading FASTA and FASTQ sequence files.
 ## Status
 
 Note that the API and scripts of this package are certain to change in
-(probably minor but) incompatible ways. It should be easy to adjst your code
+(probably minor but) incompatible ways. It should be easy to adjust your code
 to match such changes, but if you're not up for that please wait for the
 1.0.0 release.
 
