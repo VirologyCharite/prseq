@@ -168,6 +168,102 @@ def test_bz2_compression() -> None:
         fasta_file.unlink()
 
 
+def test_multi_member_gzip() -> None:
+    """Test reading multi-member gzip archives."""
+    # Create a multi-member gzip file by concatenating multiple gzip streams
+    chunk1 = b""">seq1 first chunk
+ATCGATCG
+>seq2 first chunk
+GCTAGCTA
+"""
+    chunk2 = b""">seq3 second chunk
+GGGGCCCC
+>seq4 second chunk
+TTTTAAAA
+"""
+    chunk3 = b""">seq5 third chunk
+CCCCGGGG
+"""
+
+    # Compress each chunk independently
+    compressed1 = gzip.compress(chunk1)
+    compressed2 = gzip.compress(chunk2)
+    compressed3 = gzip.compress(chunk3)
+
+    # Concatenate the compressed chunks to create a multi-member archive
+    with tempfile.NamedTemporaryFile(delete=False, suffix='.fasta.gz') as f:
+        f.write(compressed1)
+        f.write(compressed2)
+        f.write(compressed3)
+        fasta_file = Path(f.name)
+
+    try:
+        reader = FastaReader(str(fasta_file))
+        records: list[FastaRecord] = list(reader)
+
+        assert len(records) == 5
+        assert records[0].id == "seq1 first chunk"
+        assert records[0].sequence == "ATCGATCG"
+        assert records[1].id == "seq2 first chunk"
+        assert records[1].sequence == "GCTAGCTA"
+        assert records[2].id == "seq3 second chunk"
+        assert records[2].sequence == "GGGGCCCC"
+        assert records[3].id == "seq4 second chunk"
+        assert records[3].sequence == "TTTTAAAA"
+        assert records[4].id == "seq5 third chunk"
+        assert records[4].sequence == "CCCCGGGG"
+    finally:
+        fasta_file.unlink()
+
+
+def test_multi_member_bzip2() -> None:
+    """Test reading multi-member bzip2 archives."""
+    # Create a multi-member bzip2 file by concatenating multiple bzip2 streams
+    chunk1 = b""">seq1 first chunk
+ATCGATCG
+>seq2 first chunk
+GCTAGCTA
+"""
+    chunk2 = b""">seq3 second chunk
+GGGGCCCC
+>seq4 second chunk
+TTTTAAAA
+"""
+    chunk3 = b""">seq5 third chunk
+CCCCGGGG
+"""
+
+    # Compress each chunk independently
+    compressed1 = bz2.compress(chunk1)
+    compressed2 = bz2.compress(chunk2)
+    compressed3 = bz2.compress(chunk3)
+
+    # Concatenate the compressed chunks to create a multi-member archive
+    with tempfile.NamedTemporaryFile(delete=False, suffix='.fasta.bz2') as f:
+        f.write(compressed1)
+        f.write(compressed2)
+        f.write(compressed3)
+        fasta_file = Path(f.name)
+
+    try:
+        reader = FastaReader(str(fasta_file))
+        records: list[FastaRecord] = list(reader)
+
+        assert len(records) == 5
+        assert records[0].id == "seq1 first chunk"
+        assert records[0].sequence == "ATCGATCG"
+        assert records[1].id == "seq2 first chunk"
+        assert records[1].sequence == "GCTAGCTA"
+        assert records[2].id == "seq3 second chunk"
+        assert records[2].sequence == "GGGGCCCC"
+        assert records[3].id == "seq4 second chunk"
+        assert records[3].sequence == "TTTTAAAA"
+        assert records[4].id == "seq5 third chunk"
+        assert records[4].sequence == "CCCCGGGG"
+    finally:
+        fasta_file.unlink()
+
+
 def test_stdin_with_dash() -> None:
     """Test reading from stdin using '-' as filename."""
     fasta_content = """>seq1 stdin test

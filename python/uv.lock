@@ -394,7 +394,7 @@ wheels = [
 
 [[package]]
 name = "prseq"
-version = "0.0.31"
+version = "0.0.32"
 source = { editable = "." }
 dependencies = [
     { name = "maturin" },

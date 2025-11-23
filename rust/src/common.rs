@@ -1,5 +1,5 @@
-use bzip2::read::BzDecoder;
-use flate2::read::GzDecoder;
+use bzip2::read::MultiBzDecoder;
+use flate2::read::MultiGzDecoder;
 use std::io::{BufReader, Cursor, Read, Result};
 
 /// Create a reader with automatic compression detection
@@ -24,7 +24,7 @@ pub fn create_reader_with_compression<R: Read + Send + 'static>(
             // Gzip format - make owned copy of magic bytes
             let magic_copy = magic_buf[..bytes_read].to_vec();
             let chained = Cursor::new(magic_copy).chain(reader);
-            let gz_reader = GzDecoder::new(chained);
+            let gz_reader = MultiGzDecoder::new(chained);
             Box::new(gz_reader)
         } else if bytes_read >= 3
             && magic_buf[0] == 0x42
@@ -34,7 +34,7 @@ pub fn create_reader_with_compression<R: Read + Send + 'static>(
             // Bzip2 format - make owned copy of magic bytes
             let magic_copy = magic_buf[..bytes_read].to_vec();
             let chained = Cursor::new(magic_copy).chain(reader);
-            let bz_reader = BzDecoder::new(chained);
+            let bz_reader = MultiBzDecoder::new(chained);
             Box::new(bz_reader)
         } else {
             // Uncompressed - put magic bytes back

@@ -155,6 +155,132 @@ def test_bzip2_compression() -> None:
         fastq_file.unlink()
 
 
+def test_multi_member_gzip() -> None:
+    """Test reading multi-member gzip archives."""
+    # Create a multi-member gzip file by concatenating multiple gzip streams
+    chunk1 = b"""@seq1 first chunk
+ATCGATCG
++
+IIIIIIII
+@seq2 first chunk
+GCTAGCTA
++
+JJJJJJJJ
+"""
+    chunk2 = b"""@seq3 second chunk
+GGGGCCCC
++
+KKKKKKKK
+@seq4 second chunk
+TTTTAAAA
++
+LLLLLLLL
+"""
+    chunk3 = b"""@seq5 third chunk
+CCCCGGGG
++
+MMMMMMMM
+"""
+
+    # Compress each chunk independently
+    compressed1 = gzip.compress(chunk1)
+    compressed2 = gzip.compress(chunk2)
+    compressed3 = gzip.compress(chunk3)
+
+    # Concatenate the compressed chunks to create a multi-member archive
+    with tempfile.NamedTemporaryFile(delete=False, suffix='.fastq.gz') as f:
+        f.write(compressed1)
+        f.write(compressed2)
+        f.write(compressed3)
+        fastq_file = Path(f.name)
+
+    try:
+        reader = FastqReader(str(fastq_file))
+        records: list[FastqRecord] = list(reader)
+
+        assert len(records) == 5
+        assert records[0].id == "seq1 first chunk"
+        assert records[0].sequence == "ATCGATCG"
+        assert records[0].quality == "IIIIIIII"
+        assert records[1].id == "seq2 first chunk"
+        assert records[1].sequence == "GCTAGCTA"
+        assert records[1].quality == "JJJJJJJJ"
+        assert records[2].id == "seq3 second chunk"
+        assert records[2].sequence == "GGGGCCCC"
+        assert records[2].quality == "KKKKKKKK"
+        assert records[3].id == "seq4 second chunk"
+        assert records[3].sequence == "TTTTAAAA"
+        assert records[3].quality == "LLLLLLLL"
+        assert records[4].id == "seq5 third chunk"
+        assert records[4].sequence == "CCCCGGGG"
+        assert records[4].quality == "MMMMMMMM"
+    finally:
+        fastq_file.unlink()
+
+
+def test_multi_member_bzip2() -> None:
+    """Test reading multi-member bzip2 archives."""
+    # Create a multi-member bzip2 file by concatenating multiple bzip2 streams
+    chunk1 = b"""@seq1 first chunk
+ATCGATCG
++
+IIIIIIII
+@seq2 first chunk
+GCTAGCTA
++
+JJJJJJJJ
+"""
+    chunk2 = b"""@seq3 second chunk
+GGGGCCCC
++
+KKKKKKKK
+@seq4 second chunk
+TTTTAAAA
++
+LLLLLLLL
+"""
+    chunk3 = b"""@seq5 third chunk
+CCCCGGGG
++
+MMMMMMMM
+"""
+
+    # Compress each chunk independently
+    compressed1 = bz2.compress(chunk1)
+    compressed2 = bz2.compress(chunk2)
+    compressed3 = bz2.compress(chunk3)
+
+    # Concatenate the compressed chunks to create a multi-member archive
+    with tempfile.NamedTemporaryFile(delete=False, suffix='.fastq.bz2') as f:
+        f.write(compressed1)
+        f.write(compressed2)
+        f.write(compressed3)
+        fastq_file = Path(f.name)
+
+    try:
+        reader = FastqReader(str(fastq_file))
+        records: list[FastqRecord] = list(reader)
+
+        assert len(records) == 5
+        assert records[0].id == "seq1 first chunk"
+        assert records[0].sequence == "ATCGATCG"
+        assert records[0].quality == "IIIIIIII"
+        assert records[1].id == "seq2 first chunk"
+        assert records[1].sequence == "GCTAGCTA"
+        assert records[1].quality == "JJJJJJJJ"
+        assert records[2].id == "seq3 second chunk"
+        assert records[2].sequence == "GGGGCCCC"
+        assert records[2].quality == "KKKKKKKK"
+        assert records[3].id == "seq4 second chunk"
+        assert records[3].sequence == "TTTTAAAA"
+        assert records[3].quality == "LLLLLLLL"
+        assert records[4].id == "seq5 third chunk"
+        assert records[4].sequence == "CCCCGGGG"
+        assert records[4].quality == "MMMMMMMM"
+    finally:
+        fastq_file.unlink()
+
+
 def test_from_stdin_simplified_api() -> None:
     """Test creating reader for stdin with simplified API."""
     reader = FastqReader()  # None = stdin
