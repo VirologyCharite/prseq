@@ -1,8 +1,8 @@
-import os
+import builtins
 import io
+import os
 from pathlib import Path
 from typing import BinaryIO
-import builtins
 from unittest.mock import Mock
 
 _original_open = builtins.open
@@ -10,14 +10,15 @@ _original_open = builtins.open
 
 def _testing() -> bool:
     return (
-        "PYTEST_CURRENT_TEST" in os.environ or
-        builtins.open is not _original_open or
-        isinstance(builtins.open, Mock)
+        "PYTEST_CURRENT_TEST" in os.environ
+        or builtins.open is not _original_open
+        or isinstance(builtins.open, Mock)
     )
 
 
-def parse_args(source: str | Path | BinaryIO | None) -> tuple[str | None, BinaryIO | None]:
-
+def parse_args(
+    source: str | Path | BinaryIO | None,
+) -> tuple[str | None, BinaryIO | None]:
     if isinstance(source, (str, Path)):
         str_source = str(source)
         if str_source == "-":
@@ -34,7 +35,7 @@ def parse_args(source: str | Path | BinaryIO | None) -> tuple[str | None, Binary
             # mock "file" - we are not in charge!
             return None, open(source, "rb")
 
-        raise ValueError("File {source!r} does not exist.")
+        raise ValueError(f"File {source!r} does not exist.")
 
     if source is None:
         # stdin.
@@ -47,6 +48,6 @@ def parse_args(source: str | Path | BinaryIO | None) -> tuple[str | None, Binary
         return None, source
 
     raise TypeError(
-        "source must be a str, Path, file object, or None, not "
+        "source must be a str, Path, binary file object, or None, not "
         f"{type(source).__name__}"
     )
