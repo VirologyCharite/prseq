@@ -8,5 +8,5 @@ name = "prseq"
 crate-type = ["cdylib"]
 
 [dependencies]
-pyo3 = { version = "0.27", features = ["extension-module"] }
+pyo3 = { version = "0.29", features = ["extension-module"] }
 prseq = { path = "../rust" }

@@ -18,7 +18,7 @@ impl PyFileReader {
 
 impl Read for PyFileReader {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        Python::with_gil(|py| {
+        Python::attach(|py| {
             let file = self.file.bind(py);
 
             // Call the Python read() method
@@ -28,7 +28,7 @@ impl Read for PyFileReader {
 
             // Get the bytes returned
             let bytes: &Bound<PyBytes> = result
-                .downcast()
+                .cast()
                 .map_err(|_| {
                     io::Error::new(
                         io::ErrorKind::InvalidInput,
@@ -212,7 +212,7 @@ impl FastaReader {
     /// Read multiple records at once with GIL released for better performance
     fn read_batch(&mut self, py: Python<'_>, count: usize) -> PyResult<Vec<FastaRecord>> {
         // Release GIL for batch operations where the performance benefit is significant
-        py.allow_threads(move || {
+        py.detach(move || {
             let mut records = Vec::with_capacity(count);
             for _ in 0..count {
                 match self.reader.next() {
@@ -326,7 +326,7 @@ impl FastqReader {
 
     /// Read multiple records at once with GIL released for better performance
     fn read_batch(&mut self, py: Python<'_>, count: usize) -> PyResult<Vec<FastqRecord>> {
-        py.allow_threads(move || {
+        py.detach(move || {
             let mut records = Vec::with_capacity(count);
             for _ in 0..count {
                 match self.reader.next() {
